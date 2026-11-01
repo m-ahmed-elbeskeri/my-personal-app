@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weight</title>
+<meta name="description" content="Personal weight tracker. Works offline; data stays on this device.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f2">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111110">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f4f4f2;
+  --surface: #fcfcfb;
+  --raised: #eeeeeb;
+  --line: #e4e3df;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --series: #2a78d6;
+  --accent: #1f66bd;
+  --on-accent: #ffffff;
+  --danger: #b3261e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111110;
+    --surface: #1a1a19;
+    --raised: #2a2a28;
+    --line: #2f2f2d;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --series: #3987e5;
+    --accent: #3987e5;
+    --on-accent: #0b0b0b;
+    --danger: #f2a09b;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.4 system-ui, -apple-system, Roboto, "Segoe UI", sans-serif;
+  overscroll-behavior-y: none;
+}
+button, input { font: inherit; color: inherit; }
+button { touch-action: manipulation; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 88px);
+  display: grid;
+  gap: 12px;
+}
+header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+h1 { margin: 0; font-size: 22px; font-weight: 650; }
+h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.card { background: var(--surface); border-radius: 16px; padding: 16px; min-width: 0; }
+.muted { color: var(--text-2); font-size: 14px; }
+
+/* Segmented control: units and chart range */
+.seg { display: inline-flex; background: var(--raised); border-radius: 10px; padding: 3px; }
+.seg button {
+  border: 0; background: none; border-radius: 8px;
+  min-width: 44px; height: 38px; padding: 0 10px;
+  font-size: 14px; color: var(--text-2);
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; }
+
+/* Log form */
+.entry { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center; gap: 8px; }
+.step {
+  height: 64px; border: 0; border-radius: 14px;
+  background: var(--raised); font-size: 28px; line-height: 1;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.step:active { background: var(--line); }
+.value { position: relative; text-align: center; }
+#weight {
+  width: 100%; border: 0; background: none; text-align: center;
+  font-size: 52px; font-weight: 650; line-height: 1.1; padding: 0;
+  font-variant-numeric: tabular-nums; outline-offset: 4px; border-radius: 8px;
+}
+#weight::placeholder { color: var(--text-2); opacity: .45; }
+#unitLabel { display: block; font-size: 14px; color: var(--text-2); }
+.date-row { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; min-height: 48px; }
+#date {
+  height: 48px; border: 1px solid var(--line); border-radius: 10px;
+  background: none; padding: 0 10px; font-size: 16px;
+}
+#save {
+  width: 100%; height: 56px; border: 0; border-radius: 14px;
+  background: var(--accent); color: var(--on-accent);
+  font-size: 18px; font-weight: 600;
+}
+#save:active { opacity: .85; }
+#error { margin: 8px 0 0; color: var(--danger); font-size: 14px; }
+
+/* Trend */
+.trend-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+#chart { position: relative; height: 220px; touch-action: pan-y; border-radius: 8px; user-select: none; -webkit-user-select: none; }
+#chart svg { display: block; width: 100%; height: 100%; }
+#chart text { fill: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+#chart text.end { fill: var(--text); font-size: 13px; font-weight: 600; stroke: var(--surface); stroke-width: 3px; paint-order: stroke; }
+#tip {
+  position: absolute; top: 0; left: 0; pointer-events: none; white-space: nowrap;
+  background: var(--text); color: var(--surface);
+  border-radius: 8px; padding: 4px 8px; font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 12px 0 0; gap: 8px; }
+.stats div { margin: 0; }
+.stats dt { font-size: 13px; color: var(--text-2); }
+.stats dd { margin: 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* History */
+#list { list-style: none; margin: 8px -8px 0; padding: 0; }
+#list li { display: flex; align-items: center; border-top: 1px solid var(--line); }
+#list li:first-child { border-top: 0; }
+.row {
+  flex: 1; min-width: 0; min-height: 52px; border: 0; background: none; padding: 4px 8px;
+  display: grid; grid-template-columns: 1fr auto 72px; gap: 8px; align-items: center; text-align: left;
+  font-variant-numeric: tabular-nums; border-radius: 8px;
+}
+.row .delta { color: var(--text-2); font-size: 14px; }
+.row .kg { font-weight: 600; text-align: right; }
+.del { width: 44px; height: 44px; border: 0; background: none; color: var(--text-2); font-size: 18px; border-radius: 8px; }
+.ghost {
+  height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: none; flex: 1;
+}
+.ghost:disabled { opacity: .45; cursor: default; }
+#more { width: 100%; margin-top: 8px; }
+.backup { display: flex; gap: 8px; margin-top: 12px; }
+
+/* Toast */
+#toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  width: max-content; max-width: calc(100vw - 24px);
+  display: flex; align-items: center; gap: 12px;
+  background: var(--text); color: var(--surface);
+  border-radius: 12px; padding: 12px 16px; font-size: 15px;
+}
+#undo { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; padding: 4px; min-height: 32px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Weight</h1>
+    <div class="seg" role="group" aria-label="Unit">
+      <button type="button" data-unit="kg">kg</button>
+      <button type="button" data-unit="lb">lb</button>
+    </div>
+  </header>
+
+  <form class="card" id="form" novalidate autocomplete="off">
+    <div class="entry">
+      <button type="button" class="step" data-dir="-1" aria-label="Decrease by 0.1">&minus;</button>
+      <label class="value">
+        <input id="weight" type="text" inputmode="decimal" placeholder="0.0" aria-label="Weight" enterkeyhint="done">
+        <span id="unitLabel"></span>
+      </label>
+      <button type="button" class="step" data-dir="1" aria-label="Increase by 0.1">+</button>
+    </div>
+    <div class="date-row">
+      <label for="date" class="muted">Date</label>
+      <input id="date" type="date">
+    </div>
+    <button id="save" type="submit">Save</button>
+    <p id="error" role="alert" hidden></p>
+  </form>
+
+  <section class="card" id="trend" hidden>
+    <div class="trend-head">
+      <div>
+        <h2>Trend</h2>
+        <div class="muted" id="change"></div>
+      </div>
+      <div class="seg" role="group" aria-label="Chart range">
+        <button type="button" data-range="30">1M</button>
+        <button type="button" data-range="90">3M</button>
+        <button type="button" data-range="365">1Y</button>
+        <button type="button" data-range="0">All</button>
+      </div>
+    </div>
+    <div id="chart" tabindex="0"></div>
+    <dl class="stats">
+      <div><dt>Lowest</dt><dd id="low"></dd></div>
+      <div><dt>Average</dt><dd id="avg"></dd></div>
+      <div><dt>Highest</dt><dd id="high"></dd></div>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2>History</h2>
+    <p class="muted" id="empty">Nothing logged yet. Your first entry will appear here.</p>
+    <ul id="list"></ul>
+    <button type="button" class="ghost" id="more" hidden>Show more</button>
+    <div class="backup">
+      <button type="button" class="ghost" id="export">Export CSV</button>
+      <button type="button" class="ghost" id="import">Import CSV</button>
+    </div>
+    <input id="file" type="file" accept=".csv,text/csv,text/plain" hidden>
+  </section>
+</main>
+
+<div id="toast" role="status" aria-live="polite" hidden><span id="toastText"></span><button type="button" id="undo" hidden>Undo</button></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'weight.v1';
+const LB_PER_KG = 2.20462262;
+const MIN_KG = 20, MAX_KG = 500;
+const PAGE = 30;
+
+/* ---------- State ---------- */
+// entries: [{ d: 'YYYY-MM-DD', kg: number }], always sorted oldest first, one per day.
+const S = { unit: 'kg', range: 90, entries: [] };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) { /* first run or bad data */ }
+
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+  catch (e) { toast('Could not save on this device. Export a backup.'); return false; }
+}
+function upsert(d, kg) {
+  const i = S.entries.findIndex(e => e.d === d);
+  if (i >= 0) S.entries[i].kg = kg;
+  else { S.entries.push({ d, kg }); S.entries.sort((a, b) => (a.d < b.d ? -1 : 1)); }
+}
+
+/* ---------- Formatting ---------- */
+const pad = n => String(n).padStart(2, '0');
+function today() {
+  const n = new Date();
+  return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`;
+}
+const dayNum = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
+const asDate = s => new Date(s + 'T12:00:00');
+const fmtShort = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+const fmtFull = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+function dateLabel(s) {
+  return (s.slice(0, 4) === today().slice(0, 4) ? fmtShort : fmtFull).format(asDate(s));
+}
+function dayLabel(s) {
+  const diff = dayNum(today()) - dayNum(s);
+  return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : dateLabel(s);
+}
+const toUnit = kg => (S.unit === 'lb' ? kg * LB_PER_KG : kg);
+const fromUnit = v => (S.unit === 'lb' ? v / LB_PER_KG : v);
+const num = kg => toUnit(kg).toFixed(1);
+// Difference of the rounded values, so it always agrees with the numbers on screen.
+function signed(kgA, kgB) {
+  const t = Math.round(toUnit(kgA) * 10) - Math.round(toUnit(kgB) * 10);
+  return (t > 0 ? '+' : t < 0 ? '−' : '±') + (Math.abs(t) / 10).toFixed(1);
+}
+function parseNum(s) {
+  // Accept a decimal comma and Arabic-Indic digits from the Android keyboard.
+  const n = String(s).trim()
+    .replace(/[٠-٩]/g, c => c.charCodeAt(0) - 0x660)
+    .replace(/[٫,]/, '.');
+  return /^\d+(\.\d*)?$|^\.\d+$/.test(n) ? parseFloat(n) : NaN;
+}
+
+/* ---------- Log form ---------- */
+const weightIn = $('weight'), dateIn = $('date'), errorEl = $('error');
+let shownToday = today();
+
+function entryOn(d) { return S.entries.find(e => e.d === d); }
+function latest() { return S.entries[S.entries.length - 1]; }
+
+function syncButton() {
+  $('save').textContent = entryOn(dateIn.value) ? 'Update' : 'Save';
+}
+// Prefill with that day's entry, or else the latest one, so a typical save is a few taps.
+function syncForm() {
+  const e = entryOn(dateIn.value) || latest();
+  weightIn.value = e ? num(e.kg) : '';
+  $('unitLabel').textContent = S.unit;
+  errorEl.hidden = true;
+  syncButton();
+}
+function resetDate() {
+  shownToday = today();
+  dateIn.max = shownToday;
+  dateIn.value = shownToday;
+}
+
+function stepWeight(dir) {
+  const v = parseNum(weightIn.value);
+  if (isNaN(v)) { weightIn.focus(); return false; }
+  weightIn.value = (Math.max(1, Math.round(v * 10) + dir) / 10).toFixed(1);
+  return true;
+}
+document.querySelectorAll('.step').forEach(btn => {
+  const dir = +btn.dataset.dir;
+  let delay, repeat;
+  const stop = () => { clearTimeout(delay); clearInterval(repeat); };
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault(); // keep the keyboard from opening or closing mid-adjustment
+    if (!stepWeight(dir)) return;
+    delay = setTimeout(() => { repeat = setInterval(() => stepWeight(dir), 70); }, 400);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => btn.addEventListener(t, stop));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  btn.addEventListener('click', e => { if (e.detail === 0) stepWeight(dir); }); // keyboard only
+});
+
+dateIn.addEventListener('change', syncForm);
+
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum(weightIn.value), d = dateIn.value;
+  const kg = fromUnit(v);
+  let err = '';
+  if (isNaN(v)) err = 'Enter a weight.';
+  else if (kg < MIN_KG || kg > MAX_KG) err = `Enter a weight between ${num(MIN_KG)} and ${num(MAX_KG)} ${S.unit}.`;
+  else if (!d) err = 'Choose a date.';
+  else if (d > today()) err = 'The date can’t be in the future.';
+  errorEl.textContent = err;
+  errorEl.hidden = !err;
+  if (err) return;
+
+  upsert(d, kg);
+  if (persist()) toast(`Saved ${v.toFixed(1)} ${S.unit} for ${dayLabel(d).toLowerCase()}`);
+  weightIn.blur();
+  // Ask Chrome not to evict this data under storage pressure.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  render();
+  syncForm();
+});
+
+/* ---------- Toast ---------- */
+let toastTimer, undoFn = null;
+function toast(msg, onUndo) {
+  $('toastText').textContent = msg;
+  undoFn = onUndo || null;
+  $('undo').hidden = !onUndo;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; undoFn = null; }, onUndo ? 6000 : 2500);
+}
+$('undo').addEventListener('click', () => {
+  if (undoFn) undoFn();
+  undoFn = null;
+  $('toast').hidden = true;
+});
+
+/* ---------- Chart ---------- */
+const chart = $('chart');
+const M = { l: 38, r: 8, t: 26, b: 24 };
+let view = null; // the plotted points and their pixel positions
+
+function inRange() {
+  if (!S.range) return S.entries;
+  const cut = dayNum(today()) - S.range;
+  return S.entries.filter(e => dayNum(e.d) >= cut);
+}
+function niceTicks(lo, hi) {
+  const span = Math.max(hi - lo, 0.4);
+  const step = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100].find(s => span / s <= 4) || 200;
+  const start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+  const out = [];
+  for (let v = start; v <= end + step / 2; v += step) out.push(+v.toFixed(1));
+  if (out.length < 2) out.push(+(start + step).toFixed(1));
+  return out;
+}
+function drawChart() {
+  hideTip();
+  const pts = inRange();
+  const W = chart.clientWidth, H = chart.clientHeight;
+  if (!W) return;
+  if (!pts.length) {
+    view = null;
+    chart.innerHTML = '';
+    chart.removeAttribute('aria-label');
+    chart.tabIndex = -1;
+    chart.textContent = 'No entries in this range.';
+    chart.className = 'muted';
+    return;
+  }
+  chart.className = '';
+  chart.tabIndex = 0;
+
+  const vals = pts.map(p => toUnit(p.kg));
+  const ticks = niceTicks(Math.min(...vals), Math.max(...vals));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const x0 = dayNum(pts[0].d), x1 = dayNum(pts[pts.length - 1].d);
+  const px = M.l + 6, pw = W - M.r - px, pb = H - M.b, ph = pb - M.t;
+  const X = d => (x1 === x0 ? px + pw / 2 : px + ((d - x0) / (x1 - x0)) * pw);
+  const Y = v => pb - ((v - y0) / (y1 - y0)) * ph;
+  const xs = pts.map(p => X(dayNum(p.d)));
+  const ys = vals.map(Y);
+
+  let svg = `<svg aria-hidden="true" viewBox="0 0 ${W} ${H}">`;
+  for (const t of ticks) {
+    const y = Y(t).toFixed(1);
+    svg += `<line x1="${M.l}" x2="${W - M.r}" y1="${y}" y2="${y}" stroke="var(--line)"/>`;
+    svg += `<text x="${M.l - 6}" y="${+y + 4}" text-anchor="end">${t % 1 ? t.toFixed(1) : t}</text>`;
+  }
+  svg += `<text x="${px}" y="${H - 6}">${dateLabel(pts[0].d)}</text>`;
+  if (pts.length > 1) svg += `<text x="${W - M.r}" y="${H - 6}" text-anchor="end">${dateLabel(pts[pts.length - 1].d)}</text>`;
+  if (pts.length > 1) {
+    const d = xs.map((x, i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${ys[i].toFixed(1)}`).join('');
+    svg += `<path d="${d}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  // Latest value, labelled directly at the end of the line.
+  const ex = xs[xs.length - 1], ey = ys[ys.length - 1];
+  // Sit on the side the line isn't coming from: below a falling line, above a rising one.
+  const before = ys[Math.max(0, ys.length - 6)];
+  const labelBelow = ey - 12 < 14 || (before < ey && ey + 22 <= pb + 4);
+  const anchor = ex > W - 40 ? 'end' : 'middle';
+  svg += `<circle id="endDot" cx="${ex}" cy="${ey}" r="4.5" fill="var(--series)" stroke="var(--surface)" stroke-width="2"/>`;
+  svg += `<text id="endLabel" class="end" x="${anchor === 'end' ? W - M.r : ex}" y="${labelBelow ? ey + 22 : ey - 12}" text-anchor="${anchor}">${vals[vals.length - 1].toFixed(1)}</text>`;
+  svg += `<line id="hair" y1="${M.t}" y2="${pb}" stroke="var(--text-2)" visibility="hidden"/>`;
+  svg += `<circle id="hoverDot" r="5" fill="var(--series)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  svg += '</svg><div id="tip" hidden></div>';
+  chart.innerHTML = svg;
+
+  view = { pts, vals, xs, ys, W, active: -1 };
+  chart.setAttribute('role', 'img');
+  chart.setAttribute('aria-label',
+    `Weight from ${dateLabel(pts[0].d)} to ${dateLabel(pts[pts.length - 1].d)}, latest ${vals[vals.length - 1].toFixed(1)} ${S.unit}. Every value is listed under History.`);
+}
+function showTip(i) {
+  if (!view) return;
+  view.active = i;
+  const x = view.xs[i], y = view.ys[i];
+  const hair = $('hair'), dot = $('hoverDot'), tip = $('tip');
+  hair.setAttribute('x1', x); hair.setAttribute('x2', x);
+  hair.setAttribute('visibility', 'visible');
+  dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+  dot.setAttribute('visibility', 'visible');
+  $('endLabel').setAttribute('visibility', 'hidden');
+  tip.textContent = `${view.vals[i].toFixed(1)} ${S.unit} · ${dateLabel(view.pts[i].d)}`;
+  tip.hidden = false;
+  const left = Math.min(Math.max(0, x - tip.offsetWidth / 2), view.W - tip.offsetWidth);
+  tip.style.transform = `translateX(${left}px)`;
+}
+function hideTip() {
+  if (!view || view.active < 0) return;
+  view.active = -1;
+  $('hair').setAttribute('visibility', 'hidden');
+  $('hoverDot').setAttribute('visibility', 'hidden');
+  $('endLabel').setAttribute('visibility', 'visible');
+  $('tip').hidden = true;
+}
+function nearest(clientX) {
+  const x = clientX - chart.getBoundingClientRect().left, xs = view.xs;
+  let lo = 0, hi = xs.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] < x) lo = m; else hi = m; }
+  return x - xs[lo] <= xs[hi] - x ? lo : hi;
+}
+let moveFrame = 0;
+function track(e) {
+  if (!view) return;
+  const cx = e.clientX;
+  cancelAnimationFrame(moveFrame);
+  moveFrame = requestAnimationFrame(() => { if (view) showTip(nearest(cx)); });
+}
+chart.addEventListener('pointerdown', track);
+chart.addEventListener('pointermove', track);
+chart.addEventListener('pointercancel', () => { cancelAnimationFrame(moveFrame); hideTip(); });
+chart.addEventListener('pointerleave', e => {
+  if (e.pointerType === 'mouse') { cancelAnimationFrame(moveFrame); hideTip(); }
+});
+// After a tap the value stays readable until the next tap elsewhere.
+document.addEventListener('pointerdown', e => { if (!chart.contains(e.target)) hideTip(); });
+chart.addEventListener('blur', hideTip);
+chart.addEventListener('keydown', e => {
+  if (!view || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  e.preventDefault();
+  const last = view.xs.length - 1;
+  const cur = view.active < 0 ? last : view.active;
+  showTip(Math.min(last, Math.max(0, cur + (e.key === 'ArrowLeft' ? -1 : 1))));
+});
+
+/* ---------- Render ---------- */
+function renderTrend() {
+  const has = S.entries.length > 0;
+  $('trend').hidden = !has;
+  if (!has) return;
+  const pts = inRange();
+  if (pts.length) {
+    const vals = pts.map(p => p.kg);
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    $('low').textContent = num(Math.min(...vals));
+    $('avg').textContent = num(avg);
+    $('high').textContent = num(Math.max(...vals));
+    $('change').textContent = pts.length > 1
+      ? `${signed(pts[pts.length - 1].kg, pts[0].kg)} ${S.unit} since ${dateLabel(pts[0].d)}`
+      : 'Log another day to see a trend';
+  } else {
+    $('low').textContent = $('avg').textContent = $('high').textContent = '–';
+    $('change').textContent = '';
+  }
+  drawChart();
+}
+
+let shown = PAGE;
+function renderList() {
+  const all = S.entries, n = all.length;
+  $('empty').hidden = n > 0;
+  $('export').disabled = n === 0;
+  const count = Math.min(shown, n);
+  let html = '';
+  for (let i = n - 1; i >= n - count; i--) {
+    const e = all[i];
+    const delta = i > 0 ? signed(e.kg, all[i - 1].kg) : '';
+    html += `<li><button type="button" class="row" data-d="${e.d}" aria-label="Edit ${dayLabel(e.d)}, ${num(e.kg)} ${S.unit}">` +
+      `<span>${dayLabel(e.d)}</span><span class="delta">${delta}</span><span class="kg">${num(e.kg)}</span></button>` +
+      `<button type="button" class="del" data-del="${e.d}" aria-label="Delete ${dayLabel(e.d)}">×</button></li>`;
+  }
+  $('list').innerHTML = html;
+  $('more').hidden = count >= n;
+}
+function renderControls() {
+  document.querySelectorAll('[data-unit]').forEach(b => b.setAttribute('aria-pressed', b.dataset.unit === S.unit));
+  document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.range === S.range));
+}
+function render() {
+  renderControls();
+  renderTrend();
+  renderList();
+}
+
+/* ---------- Actions ---------- */
+document.querySelectorAll('[data-unit]').forEach(b => b.addEventListener('click', () => {
+  if (S.unit === b.dataset.unit) return;
+  // Convert whatever is typed, so an unsaved value isn't lost or misread.
+  const typed = parseNum(weightIn.value);
+  const kg = isNaN(typed) ? NaN : fromUnit(typed);
+  S.unit = b.dataset.unit;
+  persist();
+  if (!isNaN(kg)) weightIn.value = num(kg);
+  $('unitLabel').textContent = S.unit;
+  render();
+}));
+document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+  S.range = +b.dataset.range;
+  persist();
+  renderControls();
+  renderTrend();
+}));
+$('list').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const d = del.dataset.del, entry = entryOn(d);
+    S.entries = S.entries.filter(x => x.d !== d);
+    persist();
+    render();
+    syncForm();
+    toast(`Deleted ${dayLabel(d).toLowerCase()}`, () => {
+      upsert(entry.d, entry.kg);
+      persist();
+      render();
+      syncForm();
+    });
+    return;
+  }
+  const row = e.target.closest('[data-d]');
+  if (row) {
+    dateIn.value = row.dataset.d;
+    syncForm();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
+$('more').addEventListener('click', () => { shown += PAGE * 2; renderList(); });
+
+/* ---------- Backup ---------- */
+$('export').addEventListener('click', async () => {
+  const csv = 'date,weight_kg\n' + S.entries.map(e => `${e.d},${e.kg.toFixed(3)}`).join('\n') + '\n';
+  const name = `weight-${today()}.csv`;
+  const file = new File([csv], name, { type: 'text/csv' });
+  // Android's share sheet lets the file go straight to Drive, email and so on.
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: name }); return; }
+    catch (err) { if (err.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('import').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const lines = (await f.text()).replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  const isLb = lines.length > 0 && /lb/i.test(lines[0]);
+  const now = today();
+  let added = 0, skipped = 0;
+  lines.forEach((line, i) => {
+    const m = /^"?(\d{4}-\d{2}-\d{2})"?\s*[,;\t]\s*"?([\d.,]+)"?\s*$/.exec(line.trim());
+    if (!m) { if (i > 0) skipped++; return; } // the first line may be a header
+    const v = parseNum(m[2]);
+    const kg = isLb ? v / LB_PER_KG : v;
+    const realDate = !isNaN(asDate(m[1])) && new Date(dayNum(m[1]) * 864e5).toISOString().slice(0, 10) === m[1];
+    if (!realDate || m[1] > now || !(kg >= MIN_KG && kg <= MAX_KG)) { skipped++; return; }
+    upsert(m[1], kg);
+    added++;
+  });
+  if (added) { persist(); render(); syncForm(); }
+  toast(added
+    ? `Imported ${added} ${added === 1 ? 'entry' : 'entries'}${skipped ? `, skipped ${skipped}` : ''}`
+    : 'No valid rows. Expected: date,weight_kg with dates like 2026-01-31');
+});
+
+/* ---------- App lifecycle ---------- */
+// An installed app can stay open overnight: roll the form on to the new day.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || today() === shownToday) return;
+  const wasOnToday = dateIn.value === shownToday;
+  shownToday = today();
+  dateIn.max = shownToday;
+  if (wasOnToday) { dateIn.value = shownToday; syncForm(); }
+  render();
+});
+let resizeFrame = 0;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => { if (S.entries.length) drawChart(); });
+});
+// Not on localhost, so the service worker's cache never masks the dev server's reloads.
+if ('serviceWorker' in navigator && location.protocol === 'https:' && location.hostname !== 'localhost') {
+  navigator.serviceWorker.register('sw.js');
+}
+
+resetDate();
+render();
+syncForm();
+</script>
+</body>
+</html>
