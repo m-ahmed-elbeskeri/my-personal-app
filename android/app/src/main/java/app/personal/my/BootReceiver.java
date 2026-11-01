@@ -10,5 +10,6 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context c, Intent i) {
         Alarms.scheduleNext(c);
         Digest.schedule(c);
+        LockScreen.sync(c);
     }
 }

@@ -28,6 +28,9 @@ public class MainActivity extends Activity {
     /** Set while the app is on screen, so an alarm can show inside it. */
     static volatile MainActivity visible;
     static final String ROUTE = "route";
+    private static final java.util.concurrent.ExecutorService WORK = java.util.concurrent.Executors.newFixedThreadPool(4);
+    private static final java.util.Set<String> FEED_HOSTS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "hn.algolia.com", "api.github.com", "github.com", "export.arxiv.org"));
 
     private static final String HOST = "appassets.androidplatform.net";
     private static final int REQ_LOCATION = 1, REQ_NOTIFICATIONS = 2;
@@ -105,6 +108,33 @@ public class MainActivity extends Activity {
         handleAlarmIntent(getIntent());
     }
 
+    /** Reads feed sources for the page. Only these hosts, so it can't be used to reach anything else. */
+    private static String fetchAllowed(String address) {
+        org.json.JSONObject out = new org.json.JSONObject();
+        java.net.HttpURLConnection conn = null;
+        try {
+            java.net.URL url = new java.net.URL(address);
+            if (!"https".equals(url.getProtocol()) || !FEED_HOSTS.contains(url.getHost())) {
+                return out.put("error", "Host not allowed").toString();
+            }
+            conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(25000);
+            conn.setRequestProperty("User-Agent", "MyPersonalApp");
+            if (conn.getResponseCode() != 200) return out.put("error", "HTTP " + conn.getResponseCode()).toString();
+            java.io.ByteArrayOutputStream body = new java.io.ByteArrayOutputStream();
+            try (java.io.InputStream in = conn.getInputStream()) {
+                byte[] chunk = new byte[16384];
+                for (int n; (n = in.read(chunk)) > 0 && body.size() < 6_000_000; ) body.write(chunk, 0, n);
+            }
+            return out.put("text", body.toString("UTF-8")).toString();
+        } catch (Exception e) {
+            return "{\"error\":\"Request failed\"}";
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
     private boolean hasLocation() {
         return checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -151,6 +181,8 @@ public class MainActivity extends Activity {
         super.onResume();
         visible = this;
         web.onResume();
+        LockScreen.sync(this); // also catches returning from the permission screen
+        if (pageReady) web.evaluateJavascript("if (window.renderLockToggle) renderLockToggle()", null);
     }
 
     @Override
@@ -188,6 +220,63 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void setAlarms(String json) {
             Alarms.save(MainActivity.this, json);
+        }
+
+        private void reply(int id, String payload) {
+            runWhenReady("nativeReply(" + id + "," + JSONObject.quote(payload) + ")");
+        }
+
+        @JavascriptInterface
+        public boolean hasClaudeKey() {
+            return Claude.hasKey(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public boolean setClaudeKey(String key) {
+            return Claude.saveKey(MainActivity.this, key);
+        }
+
+        @JavascriptInterface
+        public void clearClaudeKey() {
+            Claude.clearKey(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void claudeAsk(int id, String model, String system, String user, String schema, int maxTokens, int research) {
+            WORK.execute(() -> reply(id, Claude.ask(MainActivity.this, model, system, user, schema, maxTokens, research)));
+        }
+
+        @JavascriptInterface
+        public void fetchText(int id, String url) {
+            WORK.execute(() -> reply(id, fetchAllowed(url)));
+        }
+
+        @JavascriptInterface
+        public void openUrl(String url) {
+            Uri uri = Uri.parse(url);
+            if (!"https".equals(uri.getScheme()) && !"http".equals(uri.getScheme())) return;
+            startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        }
+
+        @JavascriptInterface
+        public void setClaudeTestUrl(String url) {
+            if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                Claude.setTestBaseUrl(url);
+            }
+        }
+
+        @JavascriptInterface
+        public String lockState() {
+            return LockScreen.state(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void setLockScreen(boolean on) {
+            LockScreen.setEnabled(MainActivity.this, on);
+            if (on && "needs".equals(LockScreen.state(MainActivity.this))) {
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName())));
+            }
         }
 
         @JavascriptInterface
