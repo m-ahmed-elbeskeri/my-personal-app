@@ -31,7 +31,7 @@ final class Digest {
     private Digest() {}
 
     static void save(Context c, String json) {
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(DATA, json).apply();
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(DATA, json).commit(); // on disk before anything can kill us
         schedule(c);
     }
 

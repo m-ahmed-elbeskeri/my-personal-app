@@ -42,7 +42,7 @@ final class Alarms {
     }
 
     static void save(Context c, String json) {
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(LIST, json).apply();
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(LIST, json).commit(); // on disk before anything can kill us
         scheduleNext(c);
     }
 

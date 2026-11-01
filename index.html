@@ -1517,11 +1517,13 @@ function setLocation(lat, lng) {
 $('locate').addEventListener('click', () => {
   if (!navigator.geolocation) { $('locStatus').textContent = 'Location isn\u2019t available here. Enter it below.'; return; }
   $('locStatus').textContent = 'Finding you\u2026';
-  navigator.geolocation.getCurrentPosition(
-    pos => setLocation(+pos.coords.latitude.toFixed(4), +pos.coords.longitude.toFixed(4)),
-    () => { $('locStatus').textContent = 'Couldn\u2019t get your location. Allow it, or enter it below.'; },
-    { timeout: 15000, maximumAge: 864e5 }
-  );
+  const found = pos => setLocation(+pos.coords.latitude.toFixed(4), +pos.coords.longitude.toFixed(4));
+  const failed = () => { $('locStatus').textContent = 'Couldn\u2019t get your location. Turn on location, or enter it below.'; };
+  // Network location is quickest but isn't on every phone, so fall back to GPS.
+  navigator.geolocation.getCurrentPosition(found, err => {
+    if (err.code === err.PERMISSION_DENIED) { failed(); return; }
+    navigator.geolocation.getCurrentPosition(found, failed, { enableHighAccuracy: true, timeout: 45000, maximumAge: 864e5 });
+  }, { timeout: 10000, maximumAge: 864e5 });
 });
 function typedLocation() {
   const lat = parseFloat($('lat').value.replace(',', '.')), lng = parseFloat($('lng').value.replace(',', '.'));
@@ -1575,7 +1577,7 @@ window.nativeAlarm = (key, at, action) => {
 };
 function stopAlarm() {
   clearInterval(buzzTimer);
-  if (droid) droid.stopAlarm();
+  if (droid) { droid.stopAlarm(); paintBar(); }
   else if (navigator.vibrate) navigator.vibrate(0);
   $('alarm').hidden = true;
   alarmKey = null;
@@ -1584,9 +1586,12 @@ function fireAlarm(key, at) {
   alarmKey = key;
   alarmDay = localDay(at);
   $('alarmName').textContent = key === 'test' ? 'Test alarm' : nameOf(key);
-  $('alarmAt').textContent = `Prayer time, ${clock(at)}`;
+  const test = key === 'test';
+  $('alarmAt').textContent = test ? 'Your alarm is working' : `Prayer time, ${clock(at)}`;
+  $('alarmDone').textContent = test ? 'Done' : 'I\u2019ve prayed';
+  $('alarmLater').hidden = test;
   $('alarm').hidden = false;
-  if (droid) return;
+  if (droid) { droid.setBarColor('#8fd0aa'); return; }
   let left = 8;
   const buzz = () => {
     if (navigator.vibrate) navigator.vibrate(BUZZ);
@@ -1676,6 +1681,11 @@ const VIEWS = {
   todosettings: { title: 'To Do settings', color: '#edbb2d', parent: 'todo', show: renderDigest },
   prayer: { title: 'Prayer', color: '#8fd0aa', show() { viewDay = today(); renderPrayer(); } }
 };
+function paintBar() {
+  if (!droid) return;
+  const view = VIEWS[current];
+  droid.setBarColor(view ? view.color : homeThemes[matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0]);
+}
 function showRoute(route) {
   const view = VIEWS[route];
   $('home').hidden = !!view;
@@ -1683,7 +1693,7 @@ function showRoute(route) {
   for (const k in VIEWS) $(k + 'View').hidden = k !== route;
   metaThemes.forEach((m, i) => { m.content = view ? view.color : homeThemes[i]; });
   document.title = view ? `${view.title} \u00b7 My Personal App` : 'My Personal App';
-  if (droid) droid.setBarColor(view ? view.color : homeThemes[matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0]);
+  paintBar();
   window.scrollTo(0, 0);
   if (view) view.show(); else renderHome();
 }
