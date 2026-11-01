@@ -1,7 +1,7 @@
 // Serves from cache first so the app opens instantly and offline, then refreshes
 // the cache in the background, so a new deploy appears on the next launch.
-const CACHE = 'weight-v1';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const CACHE = 'personal-v2';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './fonts/young-serif.woff2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
@@ -32,4 +32,12 @@ self.addEventListener('fetch', e => {
     }
     return fresh;
   })());
+});
+
+// Tapping a prayer notification brings the app back.
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list =>
+    list.length ? list[0].focus() : self.clients.openWindow('./#prayer')
+  ));
 });

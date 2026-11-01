@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.personal.my'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.personal.my'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    // The key and its passwords stay off GitHub. Without them, this falls back to an unsigned build.
+    def keyFile = rootProject.file('keystore.properties')
+    if (keyFile.exists()) {
+        def k = new Properties()
+        keyFile.withInputStream { k.load(it) }
+        signingConfigs {
+            release {
+                storeFile file(k.storeFile)
+                storePassword k.storePassword
+                keyAlias k.keyAlias
+                keyPassword k.keyPassword
+            }
+        }
+        buildTypes.release.signingConfig signingConfigs.release
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets {
+        main.assets.srcDirs += "$buildDir/generated/webassets"
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
+
+// The web app in the repo root stays the only copy: it's packed into the APK at build time.
+tasks.register('copyWebAssets', Copy) {
+    from('../..') {
+        include 'index.html', 'manifest.webmanifest', 'icon-192.png', 'fonts/**'
+    }
+    into "$buildDir/generated/webassets"
+}
+tasks.named('preBuild') { dependsOn 'copyWebAssets' }

@@ -2,38 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Weight</title>
-<meta name="description" content="Personal weight tracker. Works offline; data stays on this device.">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f4f2">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111110">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>My Personal App</title>
+<meta name="description" content="My Personal App. Works offline; data stays on this device.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#e6e3db">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15130f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
+@font-face {
+  font-family: "Young Serif";
+  src: url("fonts/young-serif.woff2") format("woff2");
+  font-display: swap;
+}
 :root {
   color-scheme: light dark;
-  --bg: #f4f4f2;
-  --surface: #fcfcfb;
-  --raised: #eeeeeb;
-  --line: #e4e3df;
-  --text: #0b0b0b;
-  --text-2: #52514e;
-  --series: #2a78d6;
-  --accent: #1f66bd;
-  --on-accent: #ffffff;
-  --danger: #b3261e;
+  /* Folder colours stay the same in light and dark; only the desk changes. */
+  --tomato: #f0512a;
+  --mustard: #edbb2d;
+  --mint: #8fd0aa;
+  --ink: #17140f;
+  --display: "Young Serif", Georgia, serif;
+  --bg: #e6e3db;
+  --surface: #f6f4ee;
+  --raised: #e9e6de;
+  --line: #d8d4c9;
+  --text: #17140f;
+  --text-2: #5a554b;
+  --series: #d9431d;
+  --accent: #f0512a;
+  --on-accent: #17140f;
+  --danger: #a3210f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111110;
-    --surface: #1a1a19;
-    --raised: #2a2a28;
-    --line: #2f2f2d;
-    --text: #f0efec;
-    --text-2: #c3c2b7;
-    --series: #3987e5;
-    --accent: #3987e5;
-    --on-accent: #0b0b0b;
+    --bg: #15130f;
+    --surface: #201d17;
+    --raised: #2e2a22;
+    --line: #343027;
+    --text: #f3efe6;
+    --text-2: #bdb7a8;
+    --series: #f0512a;
     --danger: #f2a09b;
   }
 }
@@ -54,29 +63,114 @@ button { touch-action: manipulation; cursor: pointer; }
 main {
   max-width: 480px;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 88px);
+  padding: 12px 12px calc(env(safe-area-inset-bottom) + 88px);
   display: grid;
   gap: 12px;
 }
-header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
-h1 { margin: 0; font-size: 22px; font-weight: 650; }
+h1 { margin: 0; font: 400 24px/1.1 var(--display); }
 h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.card { background: var(--surface); border-radius: 16px; padding: 16px; min-width: 0; }
+.card { background: var(--surface); border-radius: 6px; padding: 16px; min-width: 0; }
 .muted { color: var(--text-2); font-size: 14px; }
 
 /* Segmented control: units and chart range */
-.seg { display: inline-flex; background: var(--raised); border-radius: 10px; padding: 3px; }
+.seg { display: inline-flex; background: var(--raised); border-radius: 6px; padding: 3px; }
 .seg button {
-  border: 0; background: none; border-radius: 8px;
+  border: 0; background: none; border-radius: 4px;
   min-width: 44px; height: 38px; padding: 0 10px;
   font-size: 14px; color: var(--text-2);
 }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 600; }
 
+/* Home: a date on the desk, with a stack of folders on top of it */
+#home {
+  position: relative; overflow: clip;
+  max-width: 480px; margin: 0 auto; height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column;
+}
+.desk {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  padding: calc(env(safe-area-inset-top) + 18px) 20px 0;
+}
+.when { margin-top: auto; font: 400 min(33px, 8.4vw)/1.15 var(--display); }
+.when span { color: var(--text-2); }
+#dayNum {
+  margin-top: 8px; margin-bottom: -.2em; margin-left: -.03em;
+  font: 400 min(calc(90vw - 26px), 34vh, 400px)/.82 var(--display);
+  letter-spacing: -.02em;
+}
+.stack { position: relative; flex: none; padding-top: 34px; }
+.folder {
+  position: relative; display: block; color: var(--ink);
+  text-decoration: none; background: var(--c);
+  border-radius: 7px 7px 0 0; padding: 8px 20px 26px;
+  transition: translate .18s cubic-bezier(.2, .8, .2, 1);
+}
+.folder:active { translate: 0 -6px; }
+.folder:focus-visible { outline-color: var(--ink); outline-offset: -5px; }
+.folder + .folder { margin-top: 18px; }
+.folder::before { /* the tab: a trapezoid sitting on the folder's top edge */
+  content: ""; position: absolute; left: var(--tab-x); bottom: calc(100% - 1px);
+  width: var(--tab-w); height: 32px; background: var(--c);
+  border-radius: 8px 8px 0 0;
+  transform: perspective(40px) rotateX(9deg); transform-origin: bottom;
+}
+.tab-label {
+  position: absolute; left: var(--tab-x); bottom: 100%; width: var(--tab-w);
+  text-align: center; font: 400 17px/30px var(--display);
+}
+.f-todo { --c: var(--mustard); --tab-x: 58%; --tab-w: 100px; margin: 0 14px; rotate: .7deg; }
+.f-weight { --c: var(--tomato); --tab-x: 24px; --tab-w: 108px; margin: 0 7px; rotate: -.5deg; }
+.f-prayer {
+  --c: var(--mint); --tab-x: 44%; --tab-w: 108px;
+  margin: 0 -6px -40px; padding: 8px 26px calc(env(safe-area-inset-bottom) + 58px);
+}
+.big-line { font: 400 24px/1.2 var(--display); }
+.sub-line { font-size: 14px; }
+.f-weight > div { display: flex; align-items: center; gap: 14px; }
+.f-weight .read { flex: none; }
+#homeSpark { display: block; flex: 1; min-width: 0; height: 52px; }
+#homeNextName { font: 400 min(54px, 13vw)/1 var(--display); }
+.next-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#homeCountdown { font-size: min(32px, 8vw); line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+#homeNextName.wordy { font-size: 38px; line-height: 1.15; }
+.ticks { display: flex; gap: 6px; margin-top: 12px; }
+.ticks i { flex: 1; height: 8px; border-radius: 2px; border: 1.5px solid var(--ink); }
+.ticks i.on { background: var(--ink); }
+/* A section opens like a folder pulled up off the stack */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html[data-nav="in"]::view-transition-new(root) { animation: sheet-up .36s cubic-bezier(.2, .8, .2, 1); }
+html[data-nav="out"]::view-transition-old(root) { z-index: 1; animation: sheet-up .26s cubic-bezier(.5, 0, .9, .4) reverse forwards; }
+@keyframes sheet-up { from { transform: translateY(100%); } }
+
+/* Section header carries the folder's colour */
+.band { background: var(--c); color: var(--ink); padding-top: env(safe-area-inset-top); }
+.band > div {
+  max-width: 480px; margin: 0 auto; padding: 8px 12px 10px 4px;
+  display: flex; align-items: center; gap: 2px;
+}
+.band h1 { flex: 1; }
+.band :focus-visible { outline-color: var(--ink); }
+#weightView { --c: var(--tomato); --accent: var(--tomato); }
+#todoView, #todosettingsView { --c: var(--mustard); --accent: var(--mustard); }
+#prayerView, #settingsView { --c: var(--mint); --accent: var(--mint); }
+#historyView, #logView { --c: var(--tomato); --accent: var(--tomato); }
+.back {
+  width: 48px; height: 48px; border: 0; background: none; color: inherit;
+  font-size: 38px; line-height: 1; border-radius: 6px;
+}
+.icon-btn {
+  flex: none; width: 48px; height: 48px; display: grid; place-items: center;
+  border: 0; background: none; color: inherit; border-radius: 6px;
+}
+.link-btn { display: grid; place-items: center; flex: none; color: inherit; text-decoration: none; }
+.band .seg { background: rgba(23, 20, 15, .14); }
+.band .seg button { color: var(--ink); }
+.band .seg button[aria-pressed="true"] { background: var(--ink); color: var(--c); }
+
 /* Log form */
 .entry { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: center; gap: 8px; }
 .step {
-  height: 64px; border: 0; border-radius: 14px;
+  height: 64px; border: 0; border-radius: 6px;
   background: var(--raised); font-size: 28px; line-height: 1;
   touch-action: none; user-select: none; -webkit-user-select: none;
 }
@@ -84,18 +178,18 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .value { position: relative; text-align: center; }
 #weight {
   width: 100%; border: 0; background: none; text-align: center;
-  font-size: 52px; font-weight: 650; line-height: 1.1; padding: 0;
+  font: 400 56px/1.1 var(--display); padding: 0;
   font-variant-numeric: tabular-nums; outline-offset: 4px; border-radius: 8px;
 }
 #weight::placeholder { color: var(--text-2); opacity: .45; }
 #unitLabel { display: block; font-size: 14px; color: var(--text-2); }
 .date-row { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; min-height: 48px; }
 #date {
-  height: 48px; border: 1px solid var(--line); border-radius: 10px;
+  height: 48px; border: 1px solid var(--line); border-radius: 6px;
   background: none; padding: 0 10px; font-size: 16px;
 }
 #save {
-  width: 100%; height: 56px; border: 0; border-radius: 14px;
+  width: 100%; height: 56px; border: 0; border-radius: 6px;
   background: var(--accent); color: var(--on-accent);
   font-size: 18px; font-weight: 600;
 }
@@ -118,6 +212,45 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .stats dt { font-size: 13px; color: var(--text-2); }
 .stats dd { margin: 0; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
+/* Weight now and target */
+.now { display: flex; align-items: baseline; gap: 8px; }
+#nowValue { font: 400 64px/1.05 var(--display); }
+#nowValue.none { font-size: 34px; }
+#nowUnit { color: var(--text-2); }
+.target-head { display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin: -8px -8px 0 0; }
+#targetBig { font: 400 30px/1.2 var(--display); margin: 2px 0; }
+#targetBig.small { font-size: 22px; }
+.target-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+#targetIn {
+  flex: 1; min-width: 0; height: 52px; padding: 0 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: none; font: 400 26px/1 var(--display);
+}
+#targetSave {
+  flex: none; width: 52px; height: 52px; border: 0; border-radius: 6px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+}
+#targetError { margin: 8px 0 0; color: var(--danger); font-size: 14px; }
+.log-btn {
+  position: fixed; z-index: 2; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  width: calc(min(100vw, 480px) - 24px); height: 56px; border-radius: 6px;
+  display: grid; place-items: center; text-decoration: none; font-size: 18px; font-weight: 600;
+  background: var(--accent); color: var(--on-accent);
+}
+.log-btn:active { opacity: .85; }
+.log-btn:focus-visible { outline-color: var(--text); }
+
+/* Weight change */
+#changeStats dd { font: 400 26px/1.2 var(--display); }
+#changeStats small { display: block; font-size: 12px; color: var(--text-2); }
+.months { list-style: none; margin: 4px 0 0; padding: 0; }
+.months li {
+  display: flex; justify-content: space-between; min-height: 36px; align-items: center;
+  border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
+}
+.months li:first-child { border-top: 0; }
+.months b { font-weight: 600; }
+
 /* History */
 #list { list-style: none; margin: 8px -8px 0; padding: 0; }
 #list li { display: flex; align-items: center; border-top: 1px solid var(--line); }
@@ -131,15 +264,118 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .row .kg { font-weight: 600; text-align: right; }
 .del { width: 44px; height: 44px; border: 0; background: none; color: var(--text-2); font-size: 18px; border-radius: 8px; }
 .ghost {
-  height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px;
+  height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 6px;
   background: none; flex: 1;
 }
 .ghost:disabled { opacity: .45; cursor: default; }
 #more { width: 100%; margin-top: 8px; }
-.backup { display: flex; gap: 8px; margin-top: 12px; }
+
+/* To Do */
+.lists { display: flex; background: var(--raised); border-radius: 6px; padding: 3px; }
+.lists button { flex: 1; }
+.fab {
+  position: fixed; z-index: 2; bottom: calc(env(safe-area-inset-bottom) + 18px);
+  right: max(16px, calc(50vw - 224px));
+  width: 64px; height: 64px; border: 0; border-radius: 8px; display: grid; place-items: center;
+  background: var(--mustard); color: var(--ink);
+}
+.fab:active { translate: 0 -3px; }
+.fab:focus-visible { outline-color: var(--text); }
+.sheet-back {
+  position: fixed; z-index: 4; inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
+  background: rgba(10, 9, 7, .55);
+}
+.sheet {
+  --c: var(--mustard); --tab-x: 18px; --tab-w: 118px;
+  position: relative; width: 100%; max-width: 480px; margin: 0 auto;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px);
+  background: var(--c); color: var(--ink); border-radius: 7px 7px 0 0;
+}
+.sheet::before {
+  content: ""; position: absolute; left: var(--tab-x); bottom: calc(100% - 1px);
+  width: var(--tab-w); height: 32px; background: var(--c); border-radius: 8px 8px 0 0;
+  transform: perspective(40px) rotateX(9deg); transform-origin: bottom;
+}
+.sheet :focus-visible { outline-color: var(--ink); }
+.sheet-row { display: flex; gap: 8px; }
+#todoText {
+  flex: 1; min-width: 0; height: 56px; padding: 0 12px; color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 6px; background: rgba(255, 255, 255, .35); outline: none;
+}
+#todoText::placeholder { color: var(--ink); opacity: .6; }
+#todoAdd {
+  flex: none; width: 56px; height: 56px; border: 0; border-radius: 6px; display: grid; place-items: center;
+  background: var(--ink); color: var(--mustard);
+}
+#todoKind { display: flex; margin-top: 10px; background: rgba(23, 20, 15, .14); }
+#todoKind button { flex: 1; height: 44px; color: var(--ink); }
+#todoKind button[aria-pressed="true"] { background: var(--ink); color: var(--mustard); }
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: sheet-up .22s cubic-bezier(.2, .8, .2, 1); }
+}
+.repeats { flex: none; color: var(--text-2); margin-left: 4px; }
+.todos { list-style: none; margin: 4px -8px 0; padding: 0; }
+.todos li { display: flex; align-items: center; border-top: 1px solid var(--line); }
+.todos li:first-child { border-top: 0; }
+.check {
+  flex: none; width: 52px; height: 52px; border: 0; background: none; padding: 0;
+  display: grid; place-items: center; border-radius: 6px;
+}
+.check::before {
+  content: "\2713"; display: block; width: 28px; height: 28px; border-radius: 5px;
+  border: 2px solid var(--text-2); color: transparent;
+  font: 700 18px/24px system-ui, sans-serif; text-align: center;
+}
+.check[aria-pressed="true"]::before { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+.check:disabled { cursor: default; }
+.check:disabled::before { opacity: .35; }
+.todo-text { flex: 1; min-width: 0; padding: 10px 4px; overflow-wrap: anywhere; }
+li.done .todo-text { color: var(--text-2); text-decoration: line-through; }
+
+/* Prayer */
+#prayerToday { padding: 0 4px; }
+#prayerHijri { font: 400 20px/1.2 var(--display); }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.days button {
+  min-height: 56px; border: 1px solid transparent; border-radius: 6px;
+  background: var(--raised); padding: 4px 0; font-size: 12px; line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+.days button b { display: block; font-size: 15px; }
+.days button.full { background: var(--accent); color: var(--ink); }
+.days button[aria-pressed="true"] { border-color: var(--text); }
+.prayers { list-style: none; margin: 0 -8px; padding: 0; }
+.prayers li { display: flex; align-items: center; gap: 8px; min-height: 56px; padding-left: 8px; border-top: 1px solid var(--line); }
+.prayers li:first-child { border-top: 0; }
+.p-name { flex: 1; min-width: 0; font: 400 21px/1.15 var(--display); }
+.p-name small { display: block; font: 13px/1.3 system-ui, sans-serif; color: var(--text-2); }
+.p-time { font-variant-numeric: tabular-nums; }
+.prayers li.minor { min-height: 44px; color: var(--text-2); padding-right: 52px; }
+.prayers li.minor .p-name { font: 15px/1.3 system-ui, sans-serif; }
+.prayers li.next { box-shadow: inset 4px 0 0 var(--accent); padding-left: 14px; }
+details summary { min-height: 32px; font-weight: 600; cursor: pointer; }
+.field { display: grid; gap: 4px; margin-top: 14px; }
+.field select, .field input[type="text"], .field input[type="time"] {
+  width: 100%; height: 48px; padding: 0 10px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--surface);
+}
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.switch { display: flex; align-items: center; gap: 12px; margin-top: 16px; min-height: 48px; font-weight: 600; }
+.switch input { width: 24px; height: 24px; accent-color: var(--accent); }
+.row-btns { display: flex; gap: 8px; margin-top: 10px; }
+#alarm {
+  position: fixed; inset: 0; z-index: 10; background: var(--mint); color: var(--ink);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+  padding: 24px 20px calc(env(safe-area-inset-bottom) + 24px);
+}
+#alarmName { font: 400 min(26vw, 110px)/1 var(--display); margin-bottom: auto; margin-top: 18vh; }
+#alarm button { height: 60px; border-radius: 6px; font-size: 18px; font-weight: 600; }
+#alarmDone { border: 0; background: var(--ink); color: var(--mint); }
+#alarmLater { border: 1.5px solid var(--ink); background: none; color: var(--ink); }
 
 /* Toast */
 #toast {
+  z-index: 5;
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom) + 16px);
   width: max-content; max-width: calc(100vw - 24px);
@@ -151,15 +387,179 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Weight</h1>
-    <div class="seg" role="group" aria-label="Unit">
-      <button type="button" data-unit="kg">kg</button>
-      <button type="button" data-unit="lb">lb</button>
-    </div>
-  </header>
+<div id="home">
+  <div class="desk">
+    <div class="when" id="when"></div>
+    <div id="dayNum" aria-hidden="true"></div>
+  </div>
+  <nav class="stack" aria-label="Sections">
+    <a class="folder f-todo" href="#todo" id="openTodo">
+      <span class="tab-label">To Do</span>
+      <div class="big-line" id="homeTodo"></div>
+      <div class="sub-line" id="homeTodoRest"></div>
+    </a>
+    <a class="folder f-weight" href="#weight" id="openWeight">
+      <span class="tab-label">Weight</span>
+      <div>
+        <div class="read">
+          <div class="big-line" id="homeValue"></div>
+          <div class="sub-line" id="homeNote"></div>
+        </div>
+        <svg id="homeSpark" aria-hidden="true"></svg>
+      </div>
+    </a>
+    <a class="folder f-prayer" href="#prayer" id="openPrayer">
+      <span class="tab-label">Prayer</span>
+      <div class="next-row"><span id="homeNextName"></span><span id="homeCountdown"></span></div>
+      <div class="sub-line" id="homeNextLeft"></div>
+      <div class="ticks" id="homeTicks" aria-hidden="true"></div>
+    </a>
+  </nav>
+</div>
 
+<div id="weightView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to My Personal App">&#8249;</button>
+  <h1>Weight</h1>
+  <a class="icon-btn" href="#history" aria-label="History: edit or delete entries"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></a>
+  <div class="seg" role="group" aria-label="Unit">
+    <button type="button" data-unit="kg">kg</button>
+    <button type="button" data-unit="lb">lb</button>
+  </div>
+</div></header>
+<main>
+  <section class="card">
+    <div class="now"><span id="nowValue"></span><span id="nowUnit"></span></div>
+    <div class="muted" id="nowNote"></div>
+  </section>
+
+  <section class="card" id="targetCard">
+    <div class="target-head">
+      <h2>Target</h2>
+      <button type="button" class="icon-btn" id="targetEdit" aria-label="Change target weight"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg></button>
+    </div>
+    <div id="targetShow">
+      <div class="muted" id="targetLabel"></div>
+      <div id="targetBig"></div>
+      <div class="muted" id="targetNote"></div>
+    </div>
+    <button type="button" class="ghost link-btn" id="targetSet" style="width:100%">Set a target weight</button>
+    <form id="targetForm" novalidate autocomplete="off" hidden>
+      <div class="target-row">
+        <input id="targetIn" type="text" inputmode="decimal" aria-label="Target weight" enterkeyhint="done">
+        <span id="targetUnit" class="muted"></span>
+        <button type="submit" id="targetSave" aria-label="Save target"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button>
+      </div>
+      <p id="targetError" role="alert" hidden></p>
+      <button type="button" class="ghost" id="targetRemove" style="width:100%;margin-top:8px">Remove target</button>
+    </form>
+  </section>
+
+
+  <section class="card" id="changes" hidden>
+    <h2 id="changesTitle"></h2>
+    <dl class="stats" id="changeStats"></dl>
+    <h2 style="margin-top:18px">By month</h2>
+    <ul class="months" id="months"></ul>
+  </section>
+
+  <section class="card" id="trend" hidden>
+    <div class="trend-head">
+      <div>
+        <h2>Trend</h2>
+        <div class="muted" id="change"></div>
+      </div>
+      <div class="seg" role="group" aria-label="Chart range">
+        <button type="button" data-range="30">1M</button>
+        <button type="button" data-range="90">3M</button>
+        <button type="button" data-range="365">1Y</button>
+        <button type="button" data-range="0">All</button>
+      </div>
+    </div>
+    <div id="chart" tabindex="0"></div>
+  </section>
+
+  <a class="log-btn" id="logBtn" href="#log"></a>
+</main>
+</div>
+
+<div id="todoView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to My Personal App">&#8249;</button>
+  <h1>To Do</h1>
+  <a class="icon-btn" id="todoSettingsBtn" href="#todosettings" aria-label="Notification settings" hidden><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="3"/><circle cx="8" cy="17" r="3"/></svg></a>
+</div></header>
+<main>
+  <div>
+    <div class="lists" role="group" aria-label="List">
+      <div class="seg" style="display:contents">
+        <button type="button" data-list="daily">Daily</button>
+        <button type="button" data-list="weekly">Weekly</button>
+        <button type="button" data-list="long">Long term</button>
+      </div>
+    </div>
+  </div>
+  <section class="card">
+    <p class="muted" id="todoEmpty" style="margin:0">Nothing here yet.</p>
+    <ul class="todos" id="todoList"></ul>
+  </section>
+</main>
+</div>
+
+<button type="button" class="fab" id="todoFab" aria-label="Add task" hidden><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+<div class="sheet-back" id="todoSheet" hidden>
+  <form class="sheet" id="todoForm" role="dialog" aria-modal="true" aria-label="New task" autocomplete="off">
+    <span class="tab-label">New task</span>
+    <div class="sheet-row">
+      <input id="todoText" type="text" aria-label="Task" placeholder="What needs doing?" enterkeyhint="done" maxlength="200">
+      <button type="submit" id="todoAdd" aria-label="Add task"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="seg" id="todoKind" role="group" aria-label="How often">
+      <button type="button" id="todoOnce">Once</button>
+      <button type="button" id="todoRepeat"></button>
+    </div>
+  </form>
+</div>
+
+<div id="todosettingsView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to To Do">&#8249;</button>
+  <h1>To Do settings</h1>
+</div></header>
+<main>
+  <section class="card">
+    <label class="switch" style="margin-top:0"><input type="checkbox" id="digestOn"> Daily notification</label>
+    <p class="muted" style="margin:4px 0 0">Lists what&rsquo;s left in Daily, Weekly and Long term. Nothing is sent when they&rsquo;re all done.</p>
+    <label class="field muted">Time <input type="time" id="digestTime"></label>
+  </section>
+</main>
+</div>
+
+<div id="prayerView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to My Personal App">&#8249;</button>
+  <h1>Prayer</h1>
+  <a class="icon-btn" href="#settings" aria-label="Alarm and prayer time settings"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="3"/><circle cx="8" cy="17" r="3"/></svg></a>
+</div></header>
+<main>
+  <div id="prayerToday">
+    <div id="prayerHijri"></div>
+    <div class="muted" id="prayerGreg"></div>
+  </div>
+  <a class="ghost link-btn" id="needLoc" href="#settings" hidden>Set your location to see prayer times</a>
+  <div class="days" id="days" role="group" aria-label="Last 7 days"></div>
+  <section class="card" style="padding-block:6px">
+    <ul class="prayers" id="prayerList"></ul>
+  </section>
+</main>
+</div>
+
+<div id="logView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back">&#8249;</button>
+  <h1 id="logTitle">Log weight</h1>
+</div></header>
+<main>
   <form class="card" id="form" novalidate autocomplete="off">
     <div class="entry">
       <button type="button" class="step" data-dir="-1" aria-label="Decrease by 0.1">&minus;</button>
@@ -176,40 +576,60 @@ h2 { margin: 0; font-size: 16px; font-weight: 600; }
     <button id="save" type="submit">Save</button>
     <p id="error" role="alert" hidden></p>
   </form>
+</main>
+</div>
 
-  <section class="card" id="trend" hidden>
-    <div class="trend-head">
-      <div>
-        <h2>Trend</h2>
-        <div class="muted" id="change"></div>
-      </div>
-      <div class="seg" role="group" aria-label="Chart range">
-        <button type="button" data-range="30">1M</button>
-        <button type="button" data-range="90">3M</button>
-        <button type="button" data-range="365">1Y</button>
-        <button type="button" data-range="0">All</button>
-      </div>
-    </div>
-    <div id="chart" tabindex="0"></div>
-    <dl class="stats">
-      <div><dt>Lowest</dt><dd id="low"></dd></div>
-      <div><dt>Average</dt><dd id="avg"></dd></div>
-      <div><dt>Highest</dt><dd id="high"></dd></div>
-    </dl>
-  </section>
-
+<div id="historyView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to Weight">&#8249;</button>
+  <h1>History</h1>
+</div></header>
+<main>
+  <p class="muted" style="margin:0 4px">Tap an entry to edit it, or &times; to delete it.</p>
   <section class="card">
-    <h2>History</h2>
     <p class="muted" id="empty">Nothing logged yet. Your first entry will appear here.</p>
     <ul id="list"></ul>
     <button type="button" class="ghost" id="more" hidden>Show more</button>
-    <div class="backup">
-      <button type="button" class="ghost" id="export">Export CSV</button>
-      <button type="button" class="ghost" id="import">Import CSV</button>
-    </div>
-    <input id="file" type="file" accept=".csv,text/csv,text/plain" hidden>
   </section>
 </main>
+</div>
+
+<div id="settingsView" hidden>
+<header class="band"><div>
+  <button type="button" class="back" aria-label="Back to Prayer">&#8249;</button>
+  <h1>Prayer settings</h1>
+</div></header>
+<main>
+  <section class="card">
+      <label class="switch" style="margin-top:0"><input type="checkbox" id="alarmOn"> Vibrate at prayer time</label>
+      <p class="muted" id="alarmHelp" style="margin:4px 0 0">Only works while this app is open on screen. A web app can&rsquo;t wake a locked phone or run once it&rsquo;s closed.</p>
+      <div class="row-btns"><button type="button" class="ghost" id="alarmTest">Test vibration</button></div>
+
+      <div class="field">
+        <span class="muted">Location</span>
+        <button type="button" class="ghost" id="locate">Use my location</button>
+        <div class="muted" id="locStatus" role="status"></div>
+      </div>
+      <div class="pair field">
+        <label class="muted">Latitude <input type="text" id="lat" inputmode="text" placeholder="30.04"></label>
+        <label class="muted">Longitude <input type="text" id="lng" inputmode="text" placeholder="31.24"></label>
+      </div>
+      <label class="field muted">Calculation method <select id="method"></select></label>
+      <label class="field muted">Asr <select id="asrRule">
+        <option value="1">Standard (Shafi&#8217;i, Maliki, Hanbali)</option>
+        <option value="2">Hanafi</option>
+      </select></label>
+      <p class="muted" style="margin:14px 0 0">Times are calculated on this phone, so they work offline. They can differ by a few minutes from your mosque&rsquo;s timetable.</p>
+  </section>
+</main>
+</div>
+
+<div id="alarm" role="alertdialog" aria-labelledby="alarmName" hidden>
+  <div id="alarmName"></div>
+  <div class="big-line" id="alarmAt"></div>
+  <button type="button" id="alarmDone">I&rsquo;ve prayed</button>
+  <button type="button" id="alarmLater">Not yet</button>
+</div>
 
 <div id="toast" role="status" aria-live="polite" hidden><span id="toastText"></span><button type="button" id="undo" hidden>Undo</button></div>
 
@@ -228,7 +648,7 @@ try { Object.assign(S, JSON.parse(localStorage.getItem(KEY))); } catch (e) { /* 
 
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); return true; }
-  catch (e) { toast('Could not save on this device. Export a backup.'); return false; }
+  catch (e) { toast('Could not save on this device.'); return false; }
 }
 function upsert(d, kg) {
   const i = S.entries.findIndex(e => e.d === d);
@@ -334,7 +754,7 @@ $('form').addEventListener('submit', e => {
   // Ask Chrome not to evict this data under storage pressure.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   render();
-  syncForm();
+  goBack();
 });
 
 /* ---------- Toast ---------- */
@@ -483,24 +903,158 @@ chart.addEventListener('keydown', e => {
 });
 
 /* ---------- Render ---------- */
+// What the latest entry is compared with: the newest entry at least `days` older, else the oldest.
+function baseline(days) {
+  const all = S.entries, cut = dayNum(all[all.length - 1].d) - days;
+  for (let i = all.length - 2; i >= 0; i--) if (dayNum(all[i].d) <= cut) return all[i];
+  return all[0];
+}
+function renderNow() {
+  const last = latest();
+  $('nowValue').classList.toggle('none', !last);
+  $('nowValue').textContent = last ? num(last.kg) : 'Nothing logged';
+  $('nowUnit').textContent = last ? S.unit : '';
+  $('nowNote').textContent = last ? `Latest, ${dayLabel(last.d).toLowerCase()}` : 'Your first entry starts the trend.';
+  const logged = !!entryOn(today());
+  $('logBtn').textContent = logged ? 'Update today\u2019s weight' : 'Log today\u2019s weight';
+}
+
+/* ---------- Target weight ---------- */
+let editingTarget = false;
+// Daily rate of change from a best-fit line, so one heavy or light day doesn't swing the date.
+function trendPerDay() {
+  const all = S.entries;
+  if (!all.length) return null;
+  const end = dayNum(all[all.length - 1].d);
+  const usable = list => list.length >= 3 && dayNum(list[list.length - 1].d) - dayNum(list[0].d) >= 7;
+  let pts = all.filter(e => dayNum(e.d) >= end - 30);
+  if (!usable(pts)) pts = all;
+  if (!usable(pts)) return null;
+  const mx = pts.reduce((a, e) => a + dayNum(e.d), 0) / pts.length;
+  const my = pts.reduce((a, e) => a + e.kg, 0) / pts.length;
+  let top = 0, bottom = 0;
+  for (const e of pts) {
+    const dx = dayNum(e.d) - mx;
+    top += dx * (e.kg - my);
+    bottom += dx * dx;
+  }
+  return top / bottom;
+}
+function targetEstimate() {
+  const last = latest();
+  if (!last) return { big: 'No estimate yet', note: 'Log your weight to get one.' };
+  // Which way the goal lies is fixed when it's set, so passing the target counts as reaching it.
+  if (!S.targetDir) { S.targetDir = S.target < last.kg ? -1 : 1; persist(); }
+  if (S.targetDir < 0 ? last.kg <= S.target : last.kg >= S.target) {
+    return { big: 'You\u2019re there', note: `Reached with ${num(last.kg)} ${S.unit} on ${dateLabel(last.d)}.` };
+  }
+  const rate = trendPerDay();
+  if (rate === null) return { big: 'Not enough data yet', note: 'Needs 3 entries over at least a week.' };
+  const perWeek = toUnit(Math.abs(rate) * 7);
+  const pace = `${rate < 0 ? '\u2212' : '+'}${perWeek.toFixed(2)} ${S.unit} a week`;
+  // Slower than about 150 g a month is too flat to give an honest date.
+  if (Math.sign(rate) !== S.targetDir || Math.abs(rate) < 0.005) {
+    return { big: 'Not heading there yet', note: `Your recent trend is ${pace}.` };
+  }
+  const days = Math.ceil(Math.abs(S.target - last.kg) / Math.abs(rate));
+  if (days > 365 * 5) return { big: 'Over 5 years away', note: `At your recent trend of ${pace}.` };
+  const when = Math.max(dayNum(last.d) + days, dayNum(today()));
+  const left = when - dayNum(today());
+  const span = left < 14 ? `${left} day${left === 1 ? '' : 's'}`
+    : left < 90 ? `${Math.round(left / 7)} weeks` : `${Math.round(left / 30.44)} months`;
+  return {
+    big: fmtFull.format(asDate(new Date(when * 864e5).toISOString().slice(0, 10))),
+    note: `Estimated, about ${span} away at ${pace}.`,
+    date: true
+  };
+}
+function renderTarget() {
+  const has = S.target != null;
+  $('targetForm').hidden = !editingTarget;
+  $('targetSet').hidden = has || editingTarget;
+  $('targetShow').hidden = !has || editingTarget;
+  $('targetEdit').hidden = !has || editingTarget;
+  $('targetRemove').hidden = !has;
+  $('targetUnit').textContent = S.unit;
+  if (!has || editingTarget) return;
+  const last = latest(), est = targetEstimate();
+  const gap = last ? Math.abs(toUnit(S.target) - toUnit(last.kg)).toFixed(1) : null;
+  $('targetLabel').textContent = `${num(S.target)} ${S.unit}` + (gap && est.date ? `, ${gap} ${S.unit} to go` : '');
+  $('targetBig').textContent = est.big;
+  $('targetBig').classList.toggle('small', !est.date);
+  $('targetNote').textContent = est.note;
+}
+function editTarget() {
+  editingTarget = true;
+  $('targetIn').value = S.target != null ? num(S.target) : '';
+  $('targetError').hidden = true;
+  renderTarget();
+  $('targetIn').focus();
+}
+$('targetSet').addEventListener('click', editTarget);
+$('targetEdit').addEventListener('click', editTarget);
+$('targetForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = parseNum($('targetIn').value), kg = fromUnit(v);
+  if (isNaN(v) || kg < MIN_KG || kg > MAX_KG) {
+    $('targetError').textContent = `Enter a weight between ${num(MIN_KG)} and ${num(MAX_KG)} ${S.unit}.`;
+    $('targetError').hidden = false;
+    return;
+  }
+  S.target = kg;
+  S.targetDir = null;
+  persist();
+  editingTarget = false;
+  $('targetIn').blur();
+  renderTarget();
+});
+$('targetRemove').addEventListener('click', () => {
+  S.target = null;
+  S.targetDir = null;
+  persist();
+  editingTarget = false;
+  renderTarget();
+});
+
+function renderChanges() {
+  const all = S.entries, show = all.length > 1;
+  $('changes').hidden = !show;
+  if (!show) return;
+  const last = all[all.length - 1], week = baseline(7), month = baseline(30);
+  const span = dayNum(last.d) - dayNum(month.d);
+  const perDay = (toUnit(last.kg) - toUnit(month.kg)) / span;
+  const r = Math.round(perDay * 100);
+  const perDayText = (r > 0 ? '+' : r < 0 ? '\u2212' : '\u00b1') + (Math.abs(r) / 100).toFixed(2);
+  $('changesTitle').textContent = `Change (${S.unit})`;
+  $('changeStats').innerHTML =
+    `<div><dt>Week</dt><dd>${signed(last.kg, week.kg)}</dd><small>since ${dateLabel(week.d)}</small></div>` +
+    `<div><dt>Month</dt><dd>${signed(last.kg, month.kg)}</dd><small>since ${dateLabel(month.d)}</small></div>` +
+    `<div><dt>Avg per day</dt><dd>${perDayText}</dd><small>over ${span} day${span === 1 ? '' : 's'}</small></div>`;
+
+  // Calendar months: the month's last entry against the previous month's last entry.
+  const ends = [];
+  for (const e of all) {
+    const m = e.d.slice(0, 7), top = ends[ends.length - 1];
+    if (top && top.m === m) top.end = e;
+    else ends.push({ m, first: e, end: e });
+  }
+  const label = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
+  let html = '';
+  for (let i = ends.length - 1; i >= Math.max(0, ends.length - 6); i--) {
+    const from = i > 0 ? ends[i - 1].end : ends[i].first;
+    const same = from === ends[i].end;
+    html += `<li><span>${label.format(asDate(ends[i].m + '-15'))}</span><b>${same ? '\u2013' : signed(ends[i].end.kg, from.kg)}</b></li>`;
+  }
+  $('months').innerHTML = html;
+}
 function renderTrend() {
   const has = S.entries.length > 0;
   $('trend').hidden = !has;
   if (!has) return;
   const pts = inRange();
-  if (pts.length) {
-    const vals = pts.map(p => p.kg);
-    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-    $('low').textContent = num(Math.min(...vals));
-    $('avg').textContent = num(avg);
-    $('high').textContent = num(Math.max(...vals));
-    $('change').textContent = pts.length > 1
-      ? `${signed(pts[pts.length - 1].kg, pts[0].kg)} ${S.unit} since ${dateLabel(pts[0].d)}`
-      : 'Log another day to see a trend';
-  } else {
-    $('low').textContent = $('avg').textContent = $('high').textContent = '–';
-    $('change').textContent = '';
-  }
+  $('change').textContent = pts.length > 1
+    ? `${signed(pts[pts.length - 1].kg, pts[0].kg)} ${S.unit} since ${dateLabel(pts[0].d)}`
+    : pts.length ? 'Log another day to see a trend' : '';
   drawChart();
 }
 
@@ -508,7 +1062,6 @@ let shown = PAGE;
 function renderList() {
   const all = S.entries, n = all.length;
   $('empty').hidden = n > 0;
-  $('export').disabled = n === 0;
   const count = Math.min(shown, n);
   let html = '';
   for (let i = n - 1; i >= n - count; i--) {
@@ -527,6 +1080,9 @@ function renderControls() {
 }
 function render() {
   renderControls();
+  renderNow();
+  renderTarget();
+  renderChanges();
   renderTrend();
   renderList();
 }
@@ -567,77 +1123,634 @@ $('list').addEventListener('click', e => {
   }
   const row = e.target.closest('[data-d]');
   if (row) {
-    dateIn.value = row.dataset.d;
-    syncForm();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    pendingDay = row.dataset.d;
+    location.hash = 'log';
   }
 });
 $('more').addEventListener('click', () => { shown += PAGE * 2; renderList(); });
 
-/* ---------- Backup ---------- */
-$('export').addEventListener('click', async () => {
-  const csv = 'date,weight_kg\n' + S.entries.map(e => `${e.d},${e.kg.toFixed(3)}`).join('\n') + '\n';
-  const name = `weight-${today()}.csv`;
-  const file = new File([csv], name, { type: 'text/csv' });
-  // Android's share sheet lets the file go straight to Drive, email and so on.
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: name }); return; }
-    catch (err) { if (err.name === 'AbortError') return; }
+/* ---------- Home ---------- */
+function renderHome() {
+  const now = new Date();
+  $('dayNum').textContent = now.getDate();
+  $('when').innerHTML = `${now.toLocaleDateString(undefined, { weekday: 'long' })} <span>${now.toLocaleDateString(undefined, { month: 'long' })}</span>`;
+
+  renderHomeTodo();
+  renderHomePrayer();
+
+  const all = S.entries, last = latest(), front = $('openWeight'), spark = $('homeSpark');
+  if (!last) {
+    $('homeValue').textContent = 'Nothing yet';
+    $('homeNote').textContent = 'Tap to log';
+    spark.hidden = true;
+    front.setAttribute('aria-label', 'Weight. Nothing logged yet.');
+    return;
   }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(file);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  $('homeValue').textContent = `${num(last.kg)} ${S.unit}`;
+  const daysAgo = dayNum(today()) - dayNum(last.d);
+  $('homeNote').textContent = daysAgo === 0 ? 'Logged today' : 'Tap to log today';
+  front.setAttribute('aria-label', `Weight. ${num(last.kg)} ${S.unit}. ${$('homeNote').textContent}`);
+
+  const cut = dayNum(last.d) - 30;
+  const recent = all.filter(e => dayNum(e.d) >= cut);
+  spark.hidden = recent.length < 2;
+  if (spark.hidden) return;
+  const W = spark.clientWidth, H = spark.clientHeight, pad = 7;
+  if (!W) return;
+  const vals = recent.map(e => e.kg);
+  const lo = Math.min(...vals), span = Math.max(...vals) - lo || 1;
+  const x0 = dayNum(recent[0].d), xspan = dayNum(last.d) - x0 || 1;
+  const pts = recent.map(e => [
+    pad + ((dayNum(e.d) - x0) / xspan) * (W - pad * 2),
+    H - pad - ((e.kg - lo) / span) * (H - pad * 2)
+  ]);
+  const end = pts[pts.length - 1];
+  spark.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  spark.innerHTML =
+    `<path d="M${pts.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L')}" fill="none" stroke="#17140f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+    `<circle cx="${end[0]}" cy="${end[1]}" r="4.5" fill="#17140f"/>`;
+}
+
+/* ---------- To Do ---------- */
+// Daily and weekly tasks either repeat (a tick lasts for that day or week) or are one-offs
+// (gone once the day or week they were ticked in has passed). Long-term tasks stay done.
+const TODO_KEY = 'todo.v1';
+const T = { list: 'daily', repeat: false, digestOn: true, digestTime: '08:00', items: [] }; // items: [{ id, text, list, doneOn, repeat }]
+try { Object.assign(T, JSON.parse(localStorage.getItem(TODO_KEY))); } catch (e) { /* first run */ }
+// The Android app keeps a copy, so the daily notification can list tasks while the app is closed.
+function syncTodoNative() {
+  if (!window.AndroidApp) return;
+  AndroidApp.setTodos(JSON.stringify({ on: T.digestOn, time: T.digestTime, firstDay, items: T.items }));
+}
+const saveTodo = () => {
+  try { localStorage.setItem(TODO_KEY, JSON.stringify(T)); }
+  catch (e) { toast('Could not save on this device.'); }
+  syncTodoNative();
+};
+const REPEAT_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="repeats" aria-label="Repeats" role="img"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>';
+const repeats = i => i.list !== 'long' && i.repeat !== false;
+function pruneTodos() {
+  const keep = T.items.filter(i => i.list === 'long' || repeats(i) || !i.doneOn || isDone(i));
+  if (keep.length !== T.items.length) { T.items = keep; saveTodo(); }
+}
+const esc = t => t.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+let firstDay = 1; // Monday unless the phone's region says otherwise
+try {
+  const loc = new Intl.Locale(navigator.language);
+  const info = loc.getWeekInfo ? loc.getWeekInfo() : loc.weekInfo;
+  if (info && info.firstDay) firstDay = info.firstDay % 7;
+} catch (e) { /* keep Monday */ }
+function weekOf(d) {
+  const n = dayNum(d), dow = new Date(n * 864e5).getUTCDay();
+  return n - ((dow - firstDay + 7) % 7);
+}
+function isDone(item) {
+  if (!item.doneOn) return false;
+  if (item.list === 'daily') return item.doneOn === today();
+  if (item.list === 'weekly') return weekOf(item.doneOn) === weekOf(today());
+  return true;
+}
+function renderTodo() {
+  pruneTodos();
+  document.querySelectorAll('[data-list]').forEach(b => b.setAttribute('aria-pressed', b.dataset.list === T.list));
+  const items = T.items.filter(i => i.list === T.list);
+  const ordered = [...items.filter(i => !isDone(i)), ...items.filter(isDone)];
+  $('todoEmpty').hidden = items.length > 0;
+  $('todoList').innerHTML = ordered.map(i => {
+    const done = isDone(i), t = esc(i.text);
+    return `<li class="${done ? 'done' : ''}"><button type="button" class="check" data-id="${i.id}" aria-pressed="${done}" aria-label="${t}"></button>` +
+      `<span class="todo-text">${t}</span>${repeats(i) ? REPEAT_ICON : ''}` +
+      `<button type="button" class="del" data-del="${i.id}" aria-label="Delete ${t}">\u00d7</button></li>`;
+  }).join('');
+}
+function renderHomeTodo() {
+  pruneTodos();
+  const stat = l => {
+    const it = T.items.filter(i => i.list === l);
+    return [it.filter(isDone).length, it.length];
+  };
+  const [dd, dn] = stat('daily'), [wd, wn] = stat('weekly'), [ld, ln] = stat('long');
+  $('homeTodo').textContent = T.items.length === 0 ? 'Nothing yet' : dn ? `${dd} of ${dn} today` : 'Nothing for today';
+  $('homeTodoRest').textContent = T.items.length === 0 ? 'Tap to add a task' : `${wd} of ${wn} this week \u00b7 ${ln - ld} long term`;
+}
+document.querySelectorAll('[data-list]').forEach(b => b.addEventListener('click', () => {
+  T.list = b.dataset.list;
+  saveTodo();
+  renderTodo();
+}));
+$('digestOn').addEventListener('change', e => {
+  T.digestOn = e.target.checked;
+  saveTodo();
+  renderDigest();
+  if (T.digestOn) AndroidApp.requestAlarmPermissions();
 });
-$('import').addEventListener('click', () => $('file').click());
-$('file').addEventListener('change', async e => {
-  const f = e.target.files[0];
-  e.target.value = '';
-  if (!f) return;
-  const lines = (await f.text()).replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
-  const isLb = lines.length > 0 && /lb/i.test(lines[0]);
-  const now = today();
-  let added = 0, skipped = 0;
-  lines.forEach((line, i) => {
-    const m = /^"?(\d{4}-\d{2}-\d{2})"?\s*[,;\t]\s*"?([\d.,]+)"?\s*$/.exec(line.trim());
-    if (!m) { if (i > 0) skipped++; return; } // the first line may be a header
-    const v = parseNum(m[2]);
-    const kg = isLb ? v / LB_PER_KG : v;
-    const realDate = !isNaN(asDate(m[1])) && new Date(dayNum(m[1]) * 864e5).toISOString().slice(0, 10) === m[1];
-    if (!realDate || m[1] > now || !(kg >= MIN_KG && kg <= MAX_KG)) { skipped++; return; }
-    upsert(m[1], kg);
-    added++;
+$('digestTime').addEventListener('change', e => {
+  if (!e.target.value) { e.target.value = T.digestTime; return; }
+  T.digestTime = e.target.value;
+  saveTodo();
+});
+function renderDigest() {
+  $('digestOn').checked = T.digestOn;
+  $('digestTime').value = T.digestTime;
+  $('digestTime').disabled = !T.digestOn;
+}
+// The pop-up adds a history entry, so Android's back button closes it instead of the screen.
+let sheetOpen = false;
+function renderTodoKind() {
+  $('todoKind').hidden = T.list === 'long';
+  $('todoRepeat').textContent = T.list === 'weekly' ? 'Every week' : 'Every day';
+  $('todoOnce').setAttribute('aria-pressed', !T.repeat);
+  $('todoRepeat').setAttribute('aria-pressed', T.repeat);
+}
+function openTodoSheet() {
+  sheetOpen = true;
+  history.pushState({ sheet: true }, '');
+  renderTodoKind();
+  $('todoText').value = '';
+  $('todoSheet').hidden = false;
+  $('todoText').focus();
+}
+function hideTodoSheet() {
+  sheetOpen = false;
+  $('todoSheet').hidden = true;
+  $('todoFab').focus({ preventScroll: true });
+}
+function closeTodoSheet() {
+  if (sheetOpen) history.back(); // popstate below does the hiding
+}
+window.addEventListener('popstate', () => { if (sheetOpen) hideTodoSheet(); });
+$('todoFab').addEventListener('click', openTodoSheet);
+$('todoSheet').addEventListener('click', e => { if (e.target === $('todoSheet')) closeTodoSheet(); });
+$('todoSheet').addEventListener('keydown', e => { if (e.key === 'Escape') closeTodoSheet(); });
+const setKind = repeat => () => { T.repeat = repeat; saveTodo(); renderTodoKind(); };
+$('todoOnce').addEventListener('click', setKind(false));
+$('todoRepeat').addEventListener('click', setKind(true));
+// Tapping these shouldn't close the keyboard before the task is added.
+document.querySelectorAll('#todoForm button').forEach(b => b.addEventListener('pointerdown', e => e.preventDefault()));
+$('todoForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const text = $('todoText').value.trim();
+  if (!text) return;
+  T.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, list: T.list, doneOn: null, repeat: T.list !== 'long' && T.repeat });
+  saveTodo();
+  renderTodo();
+  closeTodoSheet();
+});
+$('todoList').addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del) {
+    const at = T.items.findIndex(i => i.id === del.dataset.del), gone = T.items[at];
+    T.items.splice(at, 1);
+    saveTodo();
+    renderTodo();
+    toast('Task deleted', () => { T.items.splice(at, 0, gone); saveTodo(); renderTodo(); });
+    return;
+  }
+  const check = e.target.closest('.check');
+  if (check) {
+    const item = T.items.find(i => i.id === check.dataset.id);
+    item.doneOn = isDone(item) ? null : today();
+    saveTodo();
+    renderTodo();
+  }
+});
+
+/* ---------- Prayer times ---------- */
+const PRAYER_KEY = 'prayer.v1';
+const P = { lat: null, lng: null, method: 'mwl', asr: 1, alarm: false, done: {}, alerted: '' };
+try { Object.assign(P, JSON.parse(localStorage.getItem(PRAYER_KEY))); } catch (e) { /* first run */ }
+const savePrayer = () => {
+  try { localStorage.setItem(PRAYER_KEY, JSON.stringify(P)); }
+  catch (e) { toast('Could not save on this device.'); }
+};
+const PRAYERS = [['fajr', 'Fajr'], ['dhuhr', 'Dhuhr'], ['asr', 'Asr'], ['maghrib', 'Maghrib'], ['isha', 'Isha']];
+const nameOf = k => PRAYERS.find(p => p[0] === k)[1];
+const METHODS = {
+  mwl: { name: 'Muslim World League', fajr: 18, isha: 17 },
+  egypt: { name: 'Egyptian General Authority', fajr: 19.5, isha: 17.5 },
+  makkah: { name: 'Umm al-Qura, Makkah', fajr: 18.5, ishaMin: 90 },
+  isna: { name: 'ISNA, North America', fajr: 15, isha: 15 },
+  karachi: { name: 'University of Karachi', fajr: 18, isha: 18 },
+  turkey: { name: 'Diyanet, Turkey', fajr: 18, isha: 17 },
+  singapore: { name: 'MUIS, Singapore', fajr: 20, isha: 18 }
+};
+const hasLoc = () => P.lat !== null && P.lng !== null;
+const RAD = Math.PI / 180;
+const fix = (a, b) => ((a % b) + b) % b;
+function sunAt(jd) {
+  const D = jd - 2451545;
+  const g = fix(357.529 + 0.98560028 * D, 360), q = fix(280.459 + 0.98564736 * D, 360);
+  const L = fix(q + 1.915 * Math.sin(g * RAD) + 0.02 * Math.sin(2 * g * RAD), 360);
+  const e = 23.439 - 0.00000036 * D;
+  const RA = fix(Math.atan2(Math.cos(e * RAD) * Math.sin(L * RAD), Math.cos(L * RAD)) / RAD / 15, 24);
+  return { decl: Math.asin(Math.sin(e * RAD) * Math.sin(L * RAD)) / RAD, eqt: q / 15 - RA };
+}
+let timesMemo = {};
+// Astronomical calculation; returns epoch ms per prayer, or null where the sun doesn't rise.
+function prayerTimes(d) {
+  if (!hasLoc()) return null;
+  const key = [d, P.lat, P.lng, P.method, P.asr].join();
+  if (key in timesMemo) return timesMemo[key];
+  const m = METHODS[P.method] || METHODS.mwl, lat = P.lat, lng = P.lng;
+  const base = dayNum(d) * 864e5, jd = dayNum(d) + 2440587.5 - lng / 360;
+  const noon = h => fix(12 - sunAt(jd + h / 24).eqt, 24);
+  const atAngle = (angle, h, before) => {
+    const decl = sunAt(jd + h / 24).decl;
+    const x = (-Math.sin(angle * RAD) - Math.sin(decl * RAD) * Math.sin(lat * RAD)) / (Math.cos(decl * RAD) * Math.cos(lat * RAD));
+    const v = Math.acos(x) / RAD / 15; // NaN if the sun never reaches this angle today
+    return noon(h) + (before ? -v : v);
+  };
+  const asrAt = h => {
+    const decl = sunAt(jd + h / 24).decl;
+    const angle = -Math.atan(1 / (P.asr + Math.tan(Math.abs(lat - decl) * RAD))) / RAD;
+    return atAngle(angle, h, false);
+  };
+  let t = { fajr: 5, sunrise: 6, dhuhr: 12, asr: 13, maghrib: 18, isha: 18 };
+  for (let i = 0; i < 2; i++) {
+    t = {
+      fajr: atAngle(m.fajr, t.fajr, true),
+      sunrise: atAngle(0.833, t.sunrise, true),
+      dhuhr: noon(t.dhuhr),
+      asr: asrAt(t.asr),
+      maghrib: atAngle(0.833, t.maghrib, false),
+      isha: m.ishaMin ? 0 : atAngle(m.isha, t.isha, false)
+    };
+    if ([t.sunrise, t.maghrib, t.asr].some(isNaN)) return (timesMemo[key] = null);
+    if (isNaN(t.fajr)) t.fajr = 5;
+    if (isNaN(t.isha)) t.isha = 18;
+  }
+  // Far north or south the twilight angle may never happen: use a share of the night instead.
+  const night = 24 - (t.maghrib - t.sunrise);
+  const fajrOk = !isNaN(atAngle(m.fajr, t.fajr, true));
+  if (!fajrOk) t.fajr = t.sunrise - (m.fajr / 60) * night;
+  if (m.ishaMin) t.isha = t.maghrib + m.ishaMin / 60;
+  else if (isNaN(atAngle(m.isha, t.isha, false))) t.isha = t.maghrib + (m.isha / 60) * night;
+  const out = {};
+  for (const k in t) out[k] = Math.round((base + (t[k] - lng / 15) * 36e5) / 6e4) * 6e4;
+  return (timesMemo[key] = out);
+}
+const fmtClock = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+const clock = ms => fmtClock.format(ms);
+function fmtLeft(ms) {
+  const m = Math.ceil(ms / 6e4);
+  if (m < 1) return 'now';
+  const h = Math.floor(m / 60);
+  return `in ${h ? h + 'h ' : ''}${m % 60 || !h ? (m % 60) + 'm' : ''}`.trim();
+}
+function nextPrayer() {
+  const now = Date.now(), t = prayerTimes(today());
+  if (!t) return null;
+  for (const [k, n] of PRAYERS) if (t[k] > now) return { key: k, name: n, at: t[k] };
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  const tom = prayerTimes(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+  return tom ? { key: 'fajr', name: 'Fajr', at: tom.fajr, tomorrow: true } : null;
+}
+const prayed = (d, k) => !!(P.done[d] && P.done[d][k]);
+const prayedCount = d => PRAYERS.filter(([k]) => prayed(d, k)).length;
+function setPrayed(d, k, on) {
+  P.done[d] = P.done[d] || {};
+  if (on) P.done[d][k] = 1; else delete P.done[d][k];
+  if (!Object.keys(P.done[d]).length) delete P.done[d];
+  savePrayer();
+}
+
+let viewDay = null;
+function renderPrayerDays() {
+  const td = today(), n = dayNum(td);
+  const wd = new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' });
+  let html = '';
+  for (let i = 6; i >= 0; i--) {
+    const iso = new Date((n - i) * 864e5).toISOString().slice(0, 10), c = prayedCount(iso);
+    html += `<button type="button" data-day="${iso}" class="${c === 5 ? 'full' : ''}" aria-pressed="${iso === viewDay}" aria-label="${dayLabel(iso)}, ${c} of 5 prayed">` +
+      `${wd.format(new Date((n - i) * 864e5))}<b>${c}/5</b></button>`;
+  }
+  $('days').innerHTML = html;
+}
+function renderPrayerList() {
+  const td = today(), d = viewDay || td, t = prayerTimes(d), now = Date.now();
+  const greg = asDate(d);
+  const hijri = new Intl.DateTimeFormat(undefined, { calendar: 'islamic-umalqura', day: 'numeric', month: 'long', year: 'numeric' }).format(greg);
+  $('prayerHijri').textContent = hijri;
+  $('prayerGreg').textContent = `${dayLabel(d)} \u00b7 ${new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(greg)}`;
+  const next = d === td ? nextPrayer() : null;
+  const nextKey = next && !next.tomorrow ? next.key : null;
+  let html = '';
+  for (const [k, name] of PRAYERS) {
+    const isNext = k === nextKey;
+    // Can't tick a prayer before its time. Without a location, the time is unknown, so allow it.
+    const locked = !!t && t[k] > now;
+    html += `<li class="${isNext ? 'next' : ''}"><div class="p-name">${name}${isNext ? `<small>Next, ${fmtLeft(t[k] - now)}</small>` : ''}</div>` +
+      `<span class="p-time">${t ? clock(t[k]) : '\u2013'}</span>` +
+      `<button type="button" class="check" data-prayer="${k}" aria-pressed="${prayed(d, k)}" ${locked ? 'disabled' : ''} aria-label="${name} prayed"></button></li>`;
+    if (k === 'fajr' && t) html += `<li class="minor"><div class="p-name">Sunrise</div><span class="p-time">${clock(t.sunrise)}</span></li>`;
+  }
+  $('prayerList').innerHTML = html;
+}
+function renderLocStatus() {
+  $('locStatus').textContent = hasLoc()
+    ? `Using ${P.lat.toFixed(3)}, ${P.lng.toFixed(3)}`
+    : 'Set your location to see prayer times.';
+  $('lat').value = hasLoc() ? P.lat : '';
+  $('lng').value = hasLoc() ? P.lng : '';
+}
+function renderPrayer() {
+  viewDay = viewDay || today();
+  renderPrayerDays();
+  renderPrayerList();
+  renderLocStatus();
+  $('method').value = P.method;
+  $('asrRule').value = String(P.asr);
+  $('alarmOn').checked = P.alarm;
+  renderAlarmHelp();
+  $('needLoc').hidden = hasLoc();
+}
+function countdown(ms) {
+  const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60;
+  return `${h ? h + ':' + pad(m) : m}:${pad(t % 60)}`;
+}
+// Runs every second on the home screen, so it only touches the one text it has to.
+function tickHomeCountdown() {
+  if (current !== 'home' || document.visibilityState !== 'visible' || !hasLoc()) return;
+  const n = nextPrayer();
+  if (!n) return;
+  if ($('homeNextName').textContent !== n.name) renderHomePrayer();
+  else $('homeCountdown').textContent = countdown(n.at - Date.now());
+}
+setInterval(tickHomeCountdown, 1000);
+function renderHomePrayer() {
+  const td = today(), n = hasLoc() ? nextPrayer() : null;
+  if (n) {
+    $('homeNextName').textContent = n.name;
+    $('homeCountdown').textContent = countdown(n.at - Date.now());
+    $('homeNextLeft').textContent = `Next prayer${n.tomorrow ? ' tomorrow' : ''} at ${clock(n.at)}`;
+  } else {
+    $('homeNextName').textContent = hasLoc() ? 'No times' : 'Set location';
+    $('homeCountdown').textContent = '';
+    $('homeNextLeft').textContent = hasLoc() ? 'Times aren\u2019t available at this latitude' : 'Tap to see prayer times';
+  }
+  $('homeNextName').classList.toggle('wordy', !n);
+  // No location means no times, so go straight to where it's set.
+  $('openPrayer').setAttribute('href', hasLoc() ? '#prayer' : '#settings');
+  $('homeTicks').innerHTML = PRAYERS.map(([k]) => `<i class="${prayed(td, k) ? 'on' : ''}"></i>`).join('');
+  $('openPrayer').setAttribute('aria-label', `Prayer. ${n ? `${n.name} at ${clock(n.at)}` : 'Location not set'}. ${prayedCount(td)} of 5 prayed today.`);
+}
+$('method').innerHTML = Object.keys(METHODS).map(k => `<option value="${k}">${METHODS[k].name}</option>`).join('');
+$('days').addEventListener('click', e => {
+  const b = e.target.closest('[data-day]');
+  if (b) { viewDay = b.dataset.day; renderPrayerDays(); renderPrayerList(); }
+});
+$('prayerList').addEventListener('click', e => {
+  const b = e.target.closest('[data-prayer]');
+  if (!b) return;
+  const d = viewDay || today();
+  setPrayed(d, b.dataset.prayer, !prayed(d, b.dataset.prayer));
+  if (navigator.vibrate) navigator.vibrate(15);
+  renderPrayerDays();
+  renderPrayerList();
+});
+function setLocation(lat, lng) {
+  P.lat = lat; P.lng = lng;
+  savePrayer();
+  renderPrayer();
+  syncNativeAlarms();
+}
+$('locate').addEventListener('click', () => {
+  if (!navigator.geolocation) { $('locStatus').textContent = 'Location isn\u2019t available here. Enter it below.'; return; }
+  $('locStatus').textContent = 'Finding you\u2026';
+  navigator.geolocation.getCurrentPosition(
+    pos => setLocation(+pos.coords.latitude.toFixed(4), +pos.coords.longitude.toFixed(4)),
+    () => { $('locStatus').textContent = 'Couldn\u2019t get your location. Allow it, or enter it below.'; },
+    { timeout: 15000, maximumAge: 864e5 }
+  );
+});
+function typedLocation() {
+  const lat = parseFloat($('lat').value.replace(',', '.')), lng = parseFloat($('lng').value.replace(',', '.'));
+  if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) setLocation(lat, lng);
+  else if ($('lat').value.trim() && $('lng').value.trim()) $('locStatus').textContent = 'Latitude must be within \u00b190 and longitude within \u00b1180.';
+}
+$('lat').addEventListener('change', typedLocation);
+$('lng').addEventListener('change', typedLocation);
+$('method').addEventListener('change', e => { P.method = e.target.value; savePrayer(); renderPrayerList(); syncNativeAlarms(); });
+$('asrRule').addEventListener('change', e => { P.asr = +e.target.value; savePrayer(); renderPrayerList(); syncNativeAlarms(); });
+
+/* ---------- Prayer alarm (while the app is open) ---------- */
+const BUZZ = [500, 200, 500, 200, 900];
+let buzzTimer = 0, alarmKey = null, alarmDay = null;
+// Inside the Android app, Android owns the alarm so it works with the phone locked.
+const droid = window.AndroidApp || null;
+function syncNativeAlarms() {
+  if (!droid) return;
+  const list = [], now = Date.now(), first = dayNum(today());
+  if (P.alarm && hasLoc()) {
+    for (let i = 0; i < 90; i++) {
+      const t = prayerTimes(new Date((first + i) * 864e5).toISOString().slice(0, 10));
+      if (t) for (const [key, name] of PRAYERS) if (t[key] > now) list.push({ key, name, at: t[key] });
+    }
+  }
+  droid.setAlarms(JSON.stringify(list));
+}
+function renderAlarmHelp() {
+  if (!droid) return;
+  $('alarmTest').textContent = 'Test alarm in 10 seconds';
+  $('alarmHelp').textContent = 'Vibrates at each prayer time, even when the phone is locked or the app is closed.' +
+    (droid.notificationsAllowed() ? '' : ' Notifications are off, so you\u2019ll feel it but see nothing. Allow them in Android settings.');
+}
+function refreshPrayed() {
+  if (current === 'home') renderHomePrayer();
+  if (current === 'prayer') { renderPrayerDays(); renderPrayerList(); }
+}
+const localDay = ms => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+// Called by the Android app: at prayer time, or from the notification's "I've prayed".
+window.nativeAlarm = (key, at, action) => {
+  if (action === 'prayed') {
+    setPrayed(localDay(at), key, true);
+    refreshPrayed();
+    toast(`${nameOf(key)} ticked off`);
+  } else {
+    fireAlarm(key, at);
+  }
+};
+function stopAlarm() {
+  clearInterval(buzzTimer);
+  if (droid) droid.stopAlarm();
+  else if (navigator.vibrate) navigator.vibrate(0);
+  $('alarm').hidden = true;
+  alarmKey = null;
+}
+function fireAlarm(key, at) {
+  alarmKey = key;
+  alarmDay = localDay(at);
+  $('alarmName').textContent = key === 'test' ? 'Test alarm' : nameOf(key);
+  $('alarmAt').textContent = `Prayer time, ${clock(at)}`;
+  $('alarm').hidden = false;
+  if (droid) return;
+  let left = 8;
+  const buzz = () => {
+    if (navigator.vibrate) navigator.vibrate(BUZZ);
+    if (--left <= 0) clearInterval(buzzTimer);
+  };
+  clearInterval(buzzTimer);
+  buzz();
+  buzzTimer = setInterval(buzz, 8000);
+  if (document.visibilityState !== 'visible' && 'serviceWorker' in navigator && window.Notification && Notification.permission === 'granted') {
+    navigator.serviceWorker.getRegistration().then(r => {
+      if (r) r.showNotification(`${nameOf(key)} prayer time`, { body: clock(at), tag: 'prayer', vibrate: BUZZ, icon: 'icon-192.png', requireInteraction: true });
+    });
+  }
+}
+function prayerTick() {
+  if (current === 'home') renderHomePrayer();
+  else if (current === 'prayer' && viewDay === today()) renderPrayerList();
+  if (droid || !P.alarm || alarmKey) return;
+  const d = today(), t = prayerTimes(d), now = Date.now();
+  if (!t) return;
+  // Reopening shortly after the time still alerts; older ones don't pile up.
+  for (const [k] of [...PRAYERS].reverse()) {
+    const age = now - t[k];
+    if (age >= 0 && age < 10 * 6e4) {
+      const id = `${d}:${k}`;
+      if (P.alerted !== id && !prayed(d, k)) {
+        P.alerted = id;
+        savePrayer();
+        fireAlarm(k, t[k]);
+      }
+      break;
+    }
+  }
+}
+$('alarmDone').addEventListener('click', () => {
+  const k = alarmKey, d = alarmDay;
+  stopAlarm();
+  if (k !== 'test') setPrayed(d, k, true);
+  refreshPrayed();
+});
+$('alarmLater').addEventListener('click', stopAlarm);
+$('alarmOn').addEventListener('change', e => {
+  P.alarm = e.target.checked;
+  savePrayer();
+  if (droid) {
+    if (P.alarm) droid.requestAlarmPermissions();
+    syncNativeAlarms();
+  } else if (P.alarm && window.Notification && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+});
+$('alarmTest').addEventListener('click', () => {
+  if (droid) {
+    droid.requestAlarmPermissions();
+    droid.testAlarm(10);
+    toast('Test alarm in 10 seconds. Lock your phone to try it.');
+    return;
+  }
+  if (navigator.vibrate && navigator.vibrate(BUZZ)) toast('Vibrating. If you feel nothing, check your phone\u2019s vibration settings.');
+  else toast('This device can\u2019t vibrate.');
+});
+setInterval(prayerTick, 10000);
+
+/* ---------- Navigation ---------- */
+// Sections live at #name, so Android's back button returns to the home screen.
+const metaThemes = [...document.querySelectorAll('meta[name="theme-color"]')];
+const homeThemes = metaThemes.map(m => m.content);
+let current = null;
+
+let pendingDay = null; // a history entry on its way to the Weight form
+const VIEWS = {
+  weight: {
+    title: 'Weight', color: '#f0512a',
+    show: render
+  },
+  log: {
+    title: 'Log weight', color: '#f0512a', parent: 'weight',
+    show() {
+      resetDate();
+      if (pendingDay) { dateIn.value = pendingDay; pendingDay = null; }
+      syncForm();
+    }
+  },
+  history: { title: 'History', color: '#f0512a', parent: 'weight', show: renderList },
+  settings: { title: 'Prayer settings', color: '#8fd0aa', parent: 'prayer', show() { renderPrayer(); } },
+  todo: { title: 'To Do', color: '#edbb2d', show: renderTodo },
+  todosettings: { title: 'To Do settings', color: '#edbb2d', parent: 'todo', show: renderDigest },
+  prayer: { title: 'Prayer', color: '#8fd0aa', show() { viewDay = today(); renderPrayer(); } }
+};
+function showRoute(route) {
+  const view = VIEWS[route];
+  $('home').hidden = !!view;
+  $('todoFab').hidden = route !== 'todo';
+  for (const k in VIEWS) $(k + 'View').hidden = k !== route;
+  metaThemes.forEach((m, i) => { m.content = view ? view.color : homeThemes[i]; });
+  document.title = view ? `${view.title} \u00b7 My Personal App` : 'My Personal App';
+  if (droid) droid.setBarColor(view ? view.color : homeThemes[matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0]);
+  window.scrollTo(0, 0);
+  if (view) view.show(); else renderHome();
+}
+function applyRoute() {
+  const name = location.hash.slice(1), route = VIEWS[name] ? name : 'home';
+  if (route === current) return;
+  const depth = r => (r === 'home' || r === null ? 0 : VIEWS[r].parent ? 2 : 1);
+  const first = current === null, opening = depth(route) > depth(current);
+  if (trail[trail.length - 2] === route) trail.pop(); else trail.push(route);
+  current = route;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (first || calm || !document.startViewTransition) { showRoute(route); return; }
+  document.documentElement.dataset.nav = opening ? 'in' : 'out';
+  document.startViewTransition(() => showRoute(route)).finished.finally(() => {
+    delete document.documentElement.dataset.nav;
   });
-  if (added) { persist(); render(); syncForm(); }
-  toast(added
-    ? `Imported ${added} ${added === 1 ? 'entry' : 'entries'}${skipped ? `, skipped ${skipped}` : ''}`
-    : 'No valid rows. Expected: date,weight_kg with dates like 2026-01-31');
-});
+}
+const trail = []; // screens visited, so the on-screen back button matches Android's
+function goBack() {
+  if (trail.length > 1) { history.back(); return; } // no extra history entry for back to replay
+  trail.pop();
+  location.replace('#' + (VIEWS[current].parent || ''));
+}
+window.addEventListener('hashchange', applyRoute);
+document.querySelectorAll('.back').forEach(b => b.addEventListener('click', goBack));
 
 /* ---------- App lifecycle ---------- */
 // An installed app can stay open overnight: roll the form on to the new day.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || today() === shownToday) return;
-  const wasOnToday = dateIn.value === shownToday;
+  if (document.visibilityState !== 'visible') return;
+  const newDay = today() !== shownToday;
+  if (current === 'home') renderHome();
+  else if (current === 'todo') renderTodo();
+  else if (current === 'prayer') { if (newDay) viewDay = today(); renderPrayer(); }
+  else if (newDay) {
+    const wasOnToday = dateIn.value === shownToday;
+    shownToday = today();
+    dateIn.max = shownToday;
+    if (wasOnToday) { dateIn.value = shownToday; syncForm(); }
+    render();
+  }
   shownToday = today();
-  dateIn.max = shownToday;
-  if (wasOnToday) { dateIn.value = shownToday; syncForm(); }
-  render();
+  prayerTick();
+  syncNativeAlarms();
 });
 let resizeFrame = 0;
 window.addEventListener('resize', () => {
   cancelAnimationFrame(resizeFrame);
-  resizeFrame = requestAnimationFrame(() => { if (S.entries.length) drawChart(); });
+  resizeFrame = requestAnimationFrame(() => {
+    if (current === 'home') renderHome();
+    else if (S.entries.length) drawChart();
+  });
 });
 // Not on localhost, so the service worker's cache never masks the dev server's reloads.
-if ('serviceWorker' in navigator && location.protocol === 'https:' && location.hostname !== 'localhost') {
+if (!droid && 'serviceWorker' in navigator && location.protocol === 'https:' && location.hostname !== 'localhost') {
   navigator.serviceWorker.register('sw.js');
 }
 
 resetDate();
-render();
-syncForm();
+if (droid) {
+  $('todoSettingsBtn').hidden = false; // only the Android app can notify on a schedule
+  if (T.digestOn) droid.requestAlarmPermissions();
+}
+applyRoute();
+prayerTick();
+syncNativeAlarms();
+syncTodoNative();
 </script>
 </body>
 </html>
